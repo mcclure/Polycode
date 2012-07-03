@@ -508,9 +508,15 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	fout = open("%s/%sLUA.cpp" % (sourcePath, prefix), "w")
 	fout.write(sout)
 	
-	#print cppHeader
 
-returncode = 0
+	pattern = '*.lua'
+	os.chdir(apiPath)
+	if libName == "Polycore":
+		with ZipFile("api.pak", 'w') as myzip:
+			for root, dirs, files in os.walk("."):
+			    for filename in fnmatch.filter(files, pattern):
+				myzip.write(os.path.join(root, filename))
+	#print cppHeader
 
 if len(sys.argv) < 10:
 	print ("Usage:\n%s [input path] [prefix] [main include] [lib small name] [lib name] [api path] [api class-path] [include path] [source path] [inherit-in-module-file path (optional)]" % (sys.argv[0]))
