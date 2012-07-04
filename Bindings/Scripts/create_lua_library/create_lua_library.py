@@ -13,11 +13,12 @@ def mkdir_p(path): # Same effect as mkdir -p, create dir and all necessary paren
 		else: raise
 
 def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, apiPath, apiClassPath, includePath, sourcePath, inheritInModuleFiles):
-	out = ""
-	sout = ""
+	out = "" # Def: Global C++ *LUAWrappers.h
+	sout = "" # Def: Global C++ *LUA.cpp
 	
-	lfout = ""
+	lfout = "" # Def: Global Lua everything-gets-required-from-this-file file
 	
+	# Header boilerplate for out and sout
 	sout += "#include \"%sLUA.h\"\n" % (prefix)
 	sout += "#include \"%sLUAWrappers.h\"\n" % (prefix)
 	sout += "#include \"PolyCoreServices.h\"\n\n"
@@ -37,6 +38,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	out += "#include \"lauxlib.h\"\n"
 	out += "} // extern \"C\" \n\n"
 
+	# Get list of headers to create bindings from
 	files = os.listdir(inputPath)
 	filteredFiles = []
 	for fileName in files:
@@ -48,6 +50,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	out += "\nusing namespace std;\n\n"
 	out += "\nnamespace Polycode {\n\n"
 	
+	# Special case: If we are building the Polycode library itself, inject the LuaEventHandler class
 	if prefix == "Polycode":
 		out += "class LuaEventHandler : public EventHandler {\n"
 		out += "public:\n"
@@ -63,7 +66,9 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 		out += "	lua_State *L;\n"
 		out += "};\n\n"
 	
+	# Iterate, process each input file
 	for fileName in filteredFiles:
+		# "Package owned" classes that ship with Polycode
 		inheritInModule = ["PhysicsSceneEntity", "CollisionScene", "CollisionSceneEntity"]
 		
 		# A file or comma-separated list of files can be given to specify classes which are "package owned"
@@ -75,66 +80,61 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					for line in f.readlines():
 						inheritInModule.append(line.strip().split("/",1)[-1]) # Strip whitespace, path/
 					
-		headerFile = "%s/%s" % (inputPath, fileName)
+		headerFile = "%s/%s" % (inputPath, fileName) # Def: Full path to input file
 		print "Parsing %s" % fileName
-		try:
-			f = open(headerFile)
-			contents = f.read().replace("_PolyExport", "")
-			cppHeader = CppHeaderParser.CppHeader(contents, "string")
+		try: # One input file parse.
+			f = open(headerFile) # Def: Input file handle
+			contents = f.read().replace("_PolyExport", "") # Def: Input file contents, strip out "_PolyExport"
+			cppHeader = CppHeaderParser.CppHeader(contents, "string") # Def: Input file contents, parsed structure
 			ignore_classes = ["PolycodeShaderModule", "Object", "Threaded", "OpenGLCubemap", "ParticleEmitter"]
 
-			for ckey in cppHeader.classes:
+			# Iterate, check each class in this file.
+			for ckey in cppHeader.classes: 
 				print ">> Parsing class %s" % ckey
-				c = cppHeader.classes[ckey]
-	#			if ckey == "ParticleEmitter":
-	#				print c
-				lout = ""
+				c = cppHeader.classes[ckey] # Def: The class structure
+
+				lout = "" # Def: The local lua file to generate for this class.
 				inherits = False
-				if len(c["inherits"]) > 0:
+				if len(c["inherits"]) > 0: # Does this class have parents?
 					if c["inherits"][0]["class"] not in ignore_classes:
-						if c["inherits"][0]["class"] in inheritInModule:
+						if c["inherits"][0]["class"] in inheritInModule: # Parent class is in this module
 							lout += "require \"%s/%s\"\n\n" % (prefix, c["inherits"][0]["class"])
-						else:
+						else: # Parent class is in Polycore
 							lout += "require \"Polycode/%s\"\n\n" % (c["inherits"][0]["class"])
 						lout += "class \"%s\" (%s)\n\n" % (ckey, c["inherits"][0]["class"])
 						inherits = True
-				if inherits == False:
+				if inherits == False: # Class does not have parents
 					lout += "class \"%s\"\n\n" % ckey
 
-				if len(c["methods"]["public"]) < 2 or ckey in ignore_classes:
+				if ckey in ignore_classes:
 					continue
 
-				if ckey == "OSFileEntry":
-					print c["methods"]["public"]
-				parsed_methods = []
+				if len(c["methods"]["public"]) < 2:
+					print("Warning: Lua-binding class with no methods")
+					continue
+
+				parsed_methods = [] # Def: List of discovered methods
 				ignore_methods = ["readByte32", "readByte16", "getCustomEntitiesByType", "Core", "Renderer", "Shader", "Texture", "handleEvent", "secondaryHandler", "getSTLString"]
 				lout += "\n\n"
 
-				pps = []
+				pps = [] # Def: List of found property structures
 				for pp in c["properties"]["public"]:
 					pp["type"] = pp["type"].replace("Polycode::", "")
 					pp["type"] = pp["type"].replace("std::", "")
-					if pp["type"].find("static ") != -1:
-						if "defaltValue" in pp:
+					if pp["type"].find("static ") != -1: # If static. FIXME: Static doesn't work?
+						if "defaltValue" in pp: # FIXME: defaltValue is misspelled.
 							lout += "%s = %s\n" % (pp["name"], pp["defaltValue"])
-					else:
+					else: # FIXME: Nonstatic method ? variable ?? found.
 						#there are some bugs in the class parser that cause it to return junk
 						if pp["type"].find("*") == -1 and pp["type"].find("vector") == -1 and pp["name"] != "setScale" and pp["name"] != "setPosition" and pp["name"] != "BUFFER_CACHE_PRECISION" and not pp["name"].isdigit():
 							pps.append(pp)
-						#if pp["type"] == "Number" or  pp["type"] == "String" or pp["type"] == "int" or pp["type"] == "bool":
-						#	pps.append(pp)
-						#else:
-						#	print(">>> Skipping %s[%s %s]" % (ckey, pp["type"], pp["name"]))
 
-				pidx = 0
+				# Iterate over properties, creating getters
+				pidx = 0 # Def: Count of properties processed so far
 
-				# hack to fix the lack of multiple inheritance
-				#if ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter":
-				#		pps.append({"name": "emitter", "type": "ParticleEmitter"})
-
-				if len(pps) > 0:
+				if len(pps) > 0: # If there are properties, add index lookup to the metatable
 					lout += "function %s:__index__(name)\n" % ckey
-					for pp in pps:
+					for pp in pps: # Iterate over property structures, creating if/else clauses for each.
 						pp["type"] = pp["type"].replace("Polycode::", "")
 						pp["type"] = pp["type"].replace("std::", "")
 						if pidx == 0:
@@ -142,6 +142,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						else:
 							lout += "\telseif name == \"%s\" then\n" % (pp["name"])
 
+						# FIXME: Don't put in so much special casing just for ScreenParticleEmitter.
 						if pp["type"] == "Number" or  pp["type"] == "String" or pp["type"] == "int" or pp["type"] == "bool":
 							lout += "\t\treturn %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
 						elif (ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter") and pp["name"] == "emitter":
@@ -188,8 +189,10 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					lout += "end\n"
 
 				lout += "\n\n"
-				pidx = 0
-				if len(pps) > 0:
+				
+				# Iterate over properties again, creating setters
+				pidx = 0 # Def: Count of 
+				if len(pps) > 0: # If there are properties, add index setter to the metatable
 					lout += "function %s:__set_callback(name,value)\n" % ckey
 					for pp in pps:
 						pp["type"] = pp["type"].replace("Polycode::", "")
@@ -228,7 +231,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					lout += "\treturn false\n"
 					lout += "end\n"
 
-
+				# Iterate over methods
 				lout += "\n\n"
 				for pm in c["methods"]["public"]:
 					if pm["name"] in parsed_methods or pm["name"].find("operator") > -1 or pm["name"] in ignore_methods:
@@ -468,10 +471,11 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				mkdir_p(apiClassPath)
 				fout = open("%s/%s.lua" % (apiClassPath, ckey), "w")
 				fout.write(lout)
-		except CppHeaderParser.CppParseError,  e:
+		except CppHeaderParser.CppParseError,  e: # One input file parse; failed.
 			print e
 			sys.exit(1)
 
+	# Footer boilerplate for out and sout.
 	out += "} // namespace Polycode\n"
 	
 	sout += "\t\t{NULL, NULL}\n"
@@ -481,7 +485,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	sout += "}"
 	
 	
-	shout = ""
+	shout = "" # Def: Global C++ *LUA.h
 	shout += "#pragma once\n"
 	shout += "#include <%s>\n" % (mainInclude)
 	shout += "extern \"C\" {\n"
@@ -492,6 +496,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	shout += "int _PolyExport luaopen_%s(lua_State *L);\n" % (prefix)
 	shout += "}\n"
 	
+	# Write out global files
 	mkdir_p(includePath)
 	mkdir_p(apiPath)
 	mkdir_p(sourcePath)
@@ -508,7 +513,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	fout = open("%s/%sLUA.cpp" % (sourcePath, prefix), "w")
 	fout.write(sout)
 	
-
+	# Create .pak zip archive
 	pattern = '*.lua'
 	os.chdir(apiPath)
 	if libName == "Polycore":
@@ -516,7 +521,6 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 			for root, dirs, files in os.walk("."):
 			    for filename in fnmatch.filter(files, pattern):
 				myzip.write(os.path.join(root, filename))
-	#print cppHeader
 
 if len(sys.argv) < 10:
 	print ("Usage:\n%s [input path] [prefix] [main include] [lib small name] [lib name] [api path] [api class-path] [include path] [source path] [inherit-in-module-file path (optional)]" % (sys.argv[0]))
