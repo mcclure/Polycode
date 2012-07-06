@@ -3,7 +3,9 @@ import CppHeaderParser
 import os
 import errno
 import re
-  
+from zipfile import *
+import fnmatch
+
 def mkdir_p(path): # Same effect as mkdir -p, create dir and all necessary parent dirs
 	try:
 		os.makedirs(path)
@@ -111,6 +113,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 				if len(c["methods"]["public"]) < 2: # Used to, this was a continue.
 					print("Warning: Lua-binding class with less than two methods")
+					continue # FIXME: Remove this, move any non-compileable classes into ignore_classes
 
 				parsed_methods = [] # Def: List of discovered methods
 				ignore_methods = ["readByte32", "readByte16", "getCustomEntitiesByType", "Core", "Renderer", "Shader", "Texture", "handleEvent", "secondaryHandler", "getSTLString"]
@@ -202,7 +205,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 				luaClassBindingOut += "\n\n"
 				
-				# Iterate over properties again, creating setters
+				# Iterate over properties again, creating setters
 				pidx = 0 # Def: Count of 
 				if len(classProperties) > 0: # If there are properties, add index setter to the metatable
 					luaClassBindingOut += "function %s:__set_callback(name,value)\n" % ckey
