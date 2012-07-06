@@ -109,9 +109,8 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				if ckey in ignore_classes:
 					continue
 
-				if len(c["methods"]["public"]) < 2:
-					print("Warning: Lua-binding class with no methods")
-					continue
+				if len(c["methods"]["public"]) < 2: # Used to, this was a continue.
+					print("Warning: Lua-binding class with less than two methods")
 
 				parsed_methods = [] # Def: List of discovered methods
 				ignore_methods = ["readByte32", "readByte16", "getCustomEntitiesByType", "Core", "Renderer", "Shader", "Texture", "handleEvent", "secondaryHandler", "getSTLString"]
@@ -132,9 +131,13 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				# Iterate over properties, creating getters
 				pidx = 0 # Def: Count of properties processed so far
 
+				# TODO: Remove or generalize ParticleEmitter special casing. These lines are marked with #SPEC
+
 				if len(classProperties) > 0: # If there are properties, add index lookup to the metatable
 					luaClassBindingOut += "function %s:__index__(name)\n" % ckey
-					for pp in classProperties: # Iterate over property structures, creating if/else clauses for each.
+					# Iterate over property structures, creating if/else clauses for each.
+					# TODO: Could a table be more appropriate for 
+					for pp in classProperties:
 						pp["type"] = pp["type"].replace("Polycode::", "")
 						pp["type"] = pp["type"].replace("std::", "")
 						if pidx == 0:
@@ -142,13 +145,19 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						else:
 							luaClassBindingOut += "\telseif name == \"%s\" then\n" % (pp["name"])
 
-						# FIXME: Don't put in so much special casing just for ScreenParticleEmitter.
+						# Generate Lua side of binding:
+
+						# If type is a primitive such as Number/String/int/bool
 						if pp["type"] == "Number" or  pp["type"] == "String" or pp["type"] == "int" or pp["type"] == "bool":
 							luaClassBindingOut += "\t\treturn %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
+							
+						# If type is a particle emitter, specifically #SPEC
 						elif (ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter") and pp["name"] == "emitter":
 							luaClassBindingOut += "\t\tlocal ret = %s(\"__skip_ptr__\")\n" % (pp["type"])
 							luaClassBindingOut += "\t\tret.__ptr = self.__ptr\n"
 							luaClassBindingOut += "\t\treturn ret\n"
+							
+						# If type is a class
 						else:
 							luaClassBindingOut += "\t\tretVal = %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
 							luaClassBindingOut += "\t\tif Polycore.__ptr_lookup[retVal] ~= nil then\n"
@@ -159,7 +168,8 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							luaClassBindingOut += "\t\t\treturn Polycore.__ptr_lookup[retVal]\n"
 							luaClassBindingOut += "\t\tend\n"
 
-						if not ((ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter") and pp["name"] == "emitter"):
+						# Generate C++ side of binding:
+						if not ((ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter") and pp["name"] == "emitter"): #SPEC
 							cppRegisterOut += "\t\t{\"%s_get_%s\", %s_%s_get_%s},\n" % (ckey, pp["name"], libName, ckey, pp["name"])
 							wrappersHeaderOut += "static int %s_%s_get_%s(lua_State *L) {\n" % (libName, ckey, pp["name"])
 							wrappersHeaderOut += "\tluaL_checktype(L, 1, LUA_TLIGHTUSERDATA);\n"
@@ -183,6 +193,8 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 								wrappersHeaderOut += "\t%s(L, &inst->%s%s);\n" % (outfunc, pp["name"], retFunc)
 							wrappersHeaderOut += "\treturn 1;\n"
 							wrappersHeaderOut += "}\n\n"
+						
+						# Success
 						pidx = pidx + 1
 
 					luaClassBindingOut += "\tend\n"
@@ -197,6 +209,8 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					for pp in classProperties:
 						pp["type"] = pp["type"].replace("Polycode::", "")
 						pp["type"] = pp["type"].replace("std::", "")
+						
+						# If type is a primitive: Create lua and C++ sides at the same time.
 						if pp["type"] == "Number" or  pp["type"] == "String" or pp["type"] == "int" or pp["type"] == "bool":
 							if pidx == 0:
 								luaClassBindingOut += "\tif name == \"%s\" then\n" % (pp["name"])
@@ -225,7 +239,9 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 							wrappersHeaderOut += "\treturn 0;\n"
 							wrappersHeaderOut += "}\n\n"
-							pidx = pidx + 1
+							pidx = pidx + 1 # Success
+							
+						# Notice: Setters for object types are not created.
 					if pidx != 0:
 						luaClassBindingOut += "\tend\n"
 					luaClassBindingOut += "\treturn false\n"
@@ -234,218 +250,235 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				# Iterate over methods
 				luaClassBindingOut += "\n\n"
 				for pm in c["methods"]["public"]:
+					# Skip argument-overloaded methods and operators.
+					# TODO: Instead of skipping arguemnt overloads, have special behavior.
+					# TODO: Instead of skipping operators, add to metatable.
 					if pm["name"] in parsed_methods or pm["name"].find("operator") > -1 or pm["name"] in ignore_methods:
 						continue
 
+					# Skip destructors and methods which return templates.
+					# TODO: Special-case certain kind of vector<>s?
 					if pm["name"] == "~"+ckey or pm["rtnType"].find("<") > -1:
-						wrappersHeaderOut += ""
-					else:
-						basicType = False
-						voidRet = False
-						if pm["name"] == ckey:
-							cppRegisterOut += "\t\t{\"%s\", %s_%s},\n" % (ckey, libName, ckey)
-							wrappersHeaderOut += "static int %s_%s(lua_State *L) {\n" % (libName, ckey)
-							idx = 1
-						else:
-							cppRegisterOut += "\t\t{\"%s_%s\", %s_%s_%s},\n" % (ckey, pm["name"], libName, ckey, pm["name"])
-							wrappersHeaderOut += "static int %s_%s_%s(lua_State *L) {\n" % (libName, ckey, pm["name"])
+						continue
+					
+					basicType = False
+					voidRet = False
 
-							if pm["rtnType"].find("static ") == -1:
-								wrappersHeaderOut += "\tluaL_checktype(L, 1, LUA_TLIGHTUSERDATA);\n"
-								wrappersHeaderOut += "\t%s *inst = (%s*)lua_topointer(L, 1);\n" % (ckey, ckey)
-							idx = 2
-						paramlist = []
-						lparamlist = []
-						for param in pm["parameters"]:
-							if not param.has_key("type"):
-								continue
-							if param["type"] == "0":
-								continue
-							param["type"] = param["type"].replace("Polycode::", "")
-							param["type"] = param["type"].replace("std::", "")
-							param["type"] = param["type"].replace("const", "")
-							param["type"] = param["type"].replace("&", "")
-							param["type"] = param["type"].replace(" ", "")
-							param["type"] = param["type"].replace("long", "long ")
-							param["type"] = param["type"].replace("unsigned", "unsigned ")
+					# Basic setup, C++ side: Add function to registry and start building wrapper function.
+					if pm["name"] == ckey: # It's a constructor
+						cppRegisterOut += "\t\t{\"%s\", %s_%s},\n" % (ckey, libName, ckey)
+						wrappersHeaderOut += "static int %s_%s(lua_State *L) {\n" % (libName, ckey)
+						idx = 1 # Def: Current stack depth (TODO: Figure out, is this correct?)
+					else: # It's not a constructor
+						cppRegisterOut += "\t\t{\"%s_%s\", %s_%s_%s},\n" % (ckey, pm["name"], libName, ckey, pm["name"])
+						wrappersHeaderOut += "static int %s_%s_%s(lua_State *L) {\n" % (libName, ckey, pm["name"])
 
-							param["name"] = param["name"].replace("end", "_end").replace("repeat", "_repeat")
-							if"type" in param:
-								luatype = "LUA_TLIGHTUSERDATA"
-								checkfunc = "lua_islightuserdata"
-								if param["type"].find("*") > -1:
-									luafunc = "(%s)lua_topointer" % (param["type"].replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle"))
-								elif param["type"].find("&") > -1:
-									luafunc = "*(%s*)lua_topointer" % (param["type"].replace("const", "").replace("&", "").replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle"))
-								else:
-									luafunc = "*(%s*)lua_topointer" % (param["type"].replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle"))
-								lend = ".__ptr"
-								if param["type"] == "int" or param["type"] == "unsigned int":
-									luafunc = "lua_tointeger"
-									luatype = "LUA_TNUMBER"
-									checkfunc = "lua_isnumber"
-									lend = ""
-								if param["type"] == "bool":
-									luafunc = "lua_toboolean"
-									luatype = "LUA_TBOOLEAN"
-									checkfunc = "lua_isboolean"
-									lend = ""
-								if param["type"] == "Number" or param["type"] == "float" or param["type"] == "double":
-									luatype = "LUA_TNUMBER"
-									luafunc = "lua_tonumber"
-									checkfunc = "lua_isnumber"
-									lend = ""
-								if param["type"] == "String":
-									luatype = "LUA_TSTRING"
-									luafunc = "lua_tostring"
-									checkfunc = "lua_isstring"
-									lend = ""
+						# Skip static methods (TODO: Figure out, why is this being done here?). # FIXME
+						if pm["rtnType"].find("static ") == -1:
+							wrappersHeaderOut += "\tluaL_checktype(L, 1, LUA_TLIGHTUSERDATA);\n"
+							wrappersHeaderOut += "\t%s *inst = (%s*)lua_topointer(L, 1);\n" % (ckey, ckey)
+						idx = 2
+					
+					# Generate C++ side parameter pushing
+					paramlist = []
+					lparamlist = []
+					for param in pm["parameters"]:
+						if not param.has_key("type"):
+							continue
+						if param["type"] == "0":
+							continue
+						param["type"] = param["type"].replace("Polycode::", "")
+						param["type"] = param["type"].replace("std::", "")
+						param["type"] = param["type"].replace("const", "")
+						param["type"] = param["type"].replace("&", "")
+						param["type"] = param["type"].replace(" ", "")
+						param["type"] = param["type"].replace("long", "long ")
+						param["type"] = param["type"].replace("unsigned", "unsigned ")
 
-								param["type"] = param["type"].replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle")
+						param["name"] = param["name"].replace("end", "_end").replace("repeat", "_repeat")
+						if"type" in param:
+							luatype = "LUA_TLIGHTUSERDATA"
+							checkfunc = "lua_islightuserdata"
+							if param["type"].find("*") > -1:
+								luafunc = "(%s)lua_topointer" % (param["type"].replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle"))
+							elif param["type"].find("&") > -1:
+								luafunc = "*(%s*)lua_topointer" % (param["type"].replace("const", "").replace("&", "").replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle"))
+							else:
+								luafunc = "*(%s*)lua_topointer" % (param["type"].replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle"))
+							lend = ".__ptr"
+							if param["type"] == "int" or param["type"] == "unsigned int":
+								luafunc = "lua_tointeger"
+								luatype = "LUA_TNUMBER"
+								checkfunc = "lua_isnumber"
+								lend = ""
+							if param["type"] == "bool":
+								luafunc = "lua_toboolean"
+								luatype = "LUA_TBOOLEAN"
+								checkfunc = "lua_isboolean"
+								lend = ""
+							if param["type"] == "Number" or param["type"] == "float" or param["type"] == "double":
+								luatype = "LUA_TNUMBER"
+								luafunc = "lua_tonumber"
+								checkfunc = "lua_isnumber"
+								lend = ""
+							if param["type"] == "String":
+								luatype = "LUA_TSTRING"
+								luafunc = "lua_tostring"
+								checkfunc = "lua_isstring"
+								lend = ""
 
-								if "defaltValue" in param:
-									if checkfunc != "lua_islightuserdata" or (checkfunc == "lua_islightuserdata" and param["defaltValue"] == "NULL"):
-										#param["defaltValue"] = param["defaltValue"].replace(" 0f", ".0f")
-										param["defaltValue"] = param["defaltValue"].replace(": :", "::")
-										#param["defaltValue"] = param["defaltValue"].replace("0 ", "0.")
-										param["defaltValue"] = re.sub(r'([0-9]+) ([0-9])+', r'\1.\2', param["defaltValue"])
+							param["type"] = param["type"].replace("Polygon", "Polycode::Polygon").replace("Rectangle", "Polycode::Rectangle")
 
-										wrappersHeaderOut += "\t%s %s;\n" % (param["type"], param["name"])
-										wrappersHeaderOut += "\tif(%s(L, %d)) {\n" % (checkfunc, idx)
-										wrappersHeaderOut += "\t\t%s = %s(L, %d);\n" % (param["name"], luafunc, idx)
-										wrappersHeaderOut += "\t} else {\n"
-										wrappersHeaderOut += "\t\t%s = %s;\n" % (param["name"], param["defaltValue"])
-										wrappersHeaderOut += "\t}\n"
-									else:
-										wrappersHeaderOut += "\tluaL_checktype(L, %d, %s);\n" % (idx, luatype);
-										if param["type"] == "String":
-											wrappersHeaderOut += "\t%s %s = String(%s(L, %d));\n" % (param["type"], param["name"], luafunc, idx)
-										else:
-											wrappersHeaderOut += "\t%s %s = %s(L, %d);\n" % (param["type"], param["name"], luafunc, idx)
+							if "defaltValue" in param:
+								if checkfunc != "lua_islightuserdata" or (checkfunc == "lua_islightuserdata" and param["defaltValue"] == "NULL"):
+									#param["defaltValue"] = param["defaltValue"].replace(" 0f", ".0f")
+									param["defaltValue"] = param["defaltValue"].replace(": :", "::")
+									#param["defaltValue"] = param["defaltValue"].replace("0 ", "0.")
+									param["defaltValue"] = re.sub(r'([0-9]+) ([0-9])+', r'\1.\2', param["defaltValue"])
+
+									wrappersHeaderOut += "\t%s %s;\n" % (param["type"], param["name"])
+									wrappersHeaderOut += "\tif(%s(L, %d)) {\n" % (checkfunc, idx)
+									wrappersHeaderOut += "\t\t%s = %s(L, %d);\n" % (param["name"], luafunc, idx)
+									wrappersHeaderOut += "\t} else {\n"
+									wrappersHeaderOut += "\t\t%s = %s;\n" % (param["name"], param["defaltValue"])
+									wrappersHeaderOut += "\t}\n"
 								else:
 									wrappersHeaderOut += "\tluaL_checktype(L, %d, %s);\n" % (idx, luatype);
 									if param["type"] == "String":
 										wrappersHeaderOut += "\t%s %s = String(%s(L, %d));\n" % (param["type"], param["name"], luafunc, idx)
 									else:
 										wrappersHeaderOut += "\t%s %s = %s(L, %d);\n" % (param["type"], param["name"], luafunc, idx)
-								paramlist.append(param["name"])
-
-								lparamlist.append(param["name"]+lend)
-								idx = idx +1
-
-						if pm["name"] == ckey:
-							if ckey == "EventHandler":
-								wrappersHeaderOut += "\tLuaEventHandler *inst = new LuaEventHandler();\n"
-								wrappersHeaderOut += "\tinst->wrapperIndex = luaL_ref(L, LUA_REGISTRYINDEX );\n"
-								wrappersHeaderOut += "\tinst->L = L;\n"
 							else:
-								wrappersHeaderOut += "\t%s *inst = new %s(%s);\n" % (ckey, ckey, ", ".join(paramlist))
-							wrappersHeaderOut += "\tlua_pushlightuserdata(L, (void*)inst);\n"
-							wrappersHeaderOut += "\treturn 1;\n"
-						else:
-							if pm["rtnType"].find("static ") == -1:
-								call = "inst->%s(%s)" % (pm["name"], ", ".join(paramlist))
-							else:
-								call = "%s::%s(%s)" % (ckey, pm["name"], ", ".join(paramlist))
-							if pm["rtnType"] == "void" or pm["rtnType"] == "static void" or pm["rtnType"] == "virtual void" or pm["rtnType"] == "inline void":
-								wrappersHeaderOut += "\t%s;\n" % (call)
-								basicType = True
-								voidRet = True
-								wrappersHeaderOut += "\treturn 0;\n"
-							else:
-								outfunc = "lua_pushlightuserdata"
-								retFunc = ""
-								basicType = False
-								if pm["rtnType"] == "Number" or  pm["rtnType"] == "inline Number":
-									outfunc = "lua_pushnumber"
-									basicType = True
-								if pm["rtnType"] == "String" or pm["rtnType"] == "static String":
-									outfunc = "lua_pushstring"
-									basicType = True
-									retFunc = ".c_str()"
-								if pm["rtnType"] == "int" or pm["rtnType"] == "static int" or  pm["rtnType"] == "size_t" or pm["rtnType"] == "static size_t" or pm["rtnType"] == "long" or pm["rtnType"] == "unsigned int" or pm["rtnType"] == "static long":
-									outfunc = "lua_pushinteger"
-									basicType = True
-								if pm["rtnType"] == "bool" or pm["rtnType"] == "static bool" or pm["rtnType"] == "virtual bool":
-									outfunc = "lua_pushboolean"
-									basicType = True
-
-								if pm["rtnType"].find("*") > -1:
-									wrappersHeaderOut += "\tvoid *ptrRetVal = (void*)%s%s;\n" % (call, retFunc)
-									wrappersHeaderOut += "\tif(ptrRetVal == NULL) {\n"
-									wrappersHeaderOut += "\t\tlua_pushnil(L);\n"
-									wrappersHeaderOut += "\t} else {\n"
-									wrappersHeaderOut += "\t\t%s(L, ptrRetVal);\n" % (outfunc)
-									wrappersHeaderOut += "\t}\n"
-								elif basicType == True:
-									wrappersHeaderOut += "\t%s(L, %s%s);\n" % (outfunc, call, retFunc)
+								wrappersHeaderOut += "\tluaL_checktype(L, %d, %s);\n" % (idx, luatype);
+								if param["type"] == "String":
+									wrappersHeaderOut += "\t%s %s = String(%s(L, %d));\n" % (param["type"], param["name"], luafunc, idx)
 								else:
-									className = pm["rtnType"].replace("const", "").replace("&", "").replace("inline", "").replace("virtual", "").replace("static", "")
-									if className == "Polygon":
-										className = "Polycode::Polygon"
-									if className == "Rectangle":
-										className = "Polycode::Rectangle"
-									wrappersHeaderOut += "\t%s *retInst = new %s();\n" % (className, className)
-									wrappersHeaderOut += "\t*retInst = %s;\n" % (call)
-									wrappersHeaderOut += "\t%s(L, retInst);\n" % (outfunc)
-								wrappersHeaderOut += "\treturn 1;\n"
-						wrappersHeaderOut += "}\n\n"
+									wrappersHeaderOut += "\t%s %s = %s(L, %d);\n" % (param["type"], param["name"], luafunc, idx)
+							paramlist.append(param["name"])
 
-						if pm["name"] == ckey:
-							luaClassBindingOut += "function %s:%s(...)\n" % (ckey, ckey)
-							if inherits:
-								luaClassBindingOut += "\tif type(arg[1]) == \"table\" and count(arg) == 1 then\n"
-								luaClassBindingOut += "\t\tif \"\"..arg[1]:class() == \"%s\" then\n" % (c["inherits"][0]["class"])
-								luaClassBindingOut += "\t\t\tself.__ptr = arg[1].__ptr\n"
-								luaClassBindingOut += "\t\t\treturn\n"
-								luaClassBindingOut += "\t\tend\n"
-								luaClassBindingOut += "\tend\n"
-							luaClassBindingOut += "\tfor k,v in pairs(arg) do\n"
-							luaClassBindingOut += "\t\tif type(v) == \"table\" then\n"
-							luaClassBindingOut += "\t\t\tif v.__ptr ~= nil then\n"
-							luaClassBindingOut += "\t\t\t\targ[k] = v.__ptr\n"
-							luaClassBindingOut += "\t\t\tend\n"
+							lparamlist.append(param["name"]+lend)
+							idx = idx +1 # Param parse success-- mark the increased stack
+
+					# Generate C++-side method call / generate return value
+					if pm["name"] == ckey: # If constructor
+						if ckey == "EventHandler": # Special case EventHandler base class (TODO: Figure out why)
+							wrappersHeaderOut += "\tLuaEventHandler *inst = new LuaEventHandler();\n"
+							wrappersHeaderOut += "\tinst->wrapperIndex = luaL_ref(L, LUA_REGISTRYINDEX );\n"
+							wrappersHeaderOut += "\tinst->L = L;\n"
+						else:
+							wrappersHeaderOut += "\t%s *inst = new %s(%s);\n" % (ckey, ckey, ", ".join(paramlist))
+						wrappersHeaderOut += "\tlua_pushlightuserdata(L, (void*)inst);\n"
+						wrappersHeaderOut += "\treturn 1;\n"
+					else: #If non-constructor
+						if pm["rtnType"].find("static ") == -1: # If non-static
+							call = "inst->%s(%s)" % (pm["name"], ", ".join(paramlist))
+						else: # If static (FIXME: Why doesn't this work?)
+							call = "%s::%s(%s)" % (ckey, pm["name"], ", ".join(paramlist))
+						
+						# If void-typed:
+						if pm["rtnType"] == "void" or pm["rtnType"] == "static void" or pm["rtnType"] == "virtual void" or pm["rtnType"] == "inline void":
+							wrappersHeaderOut += "\t%s;\n" % (call)
+							basicType = True
+							voidRet = True
+							wrappersHeaderOut += "\treturn 0;\n" # 0 arguments returned
+						else: # If there is a return value:
+							# What type is the return value? Default to pointer
+							outfunc = "lua_pushlightuserdata"
+							retFunc = ""
+							basicType = False
+							if pm["rtnType"] == "Number" or  pm["rtnType"] == "inline Number":
+								outfunc = "lua_pushnumber"
+								basicType = True
+							if pm["rtnType"] == "String" or pm["rtnType"] == "static String": # TODO: Path for STL strings?
+								outfunc = "lua_pushstring"
+								basicType = True
+								retFunc = ".c_str()"
+							if pm["rtnType"] == "int" or pm["rtnType"] == "static int" or  pm["rtnType"] == "size_t" or pm["rtnType"] == "static size_t" or pm["rtnType"] == "long" or pm["rtnType"] == "unsigned int" or pm["rtnType"] == "static long":
+								outfunc = "lua_pushinteger"
+								basicType = True
+							if pm["rtnType"] == "bool" or pm["rtnType"] == "static bool" or pm["rtnType"] == "virtual bool":
+								outfunc = "lua_pushboolean"
+								basicType = True
+
+							if pm["rtnType"].find("*") > -1: # Returned var is definitely a pointer.
+								wrappersHeaderOut += "\tvoid *ptrRetVal = (void*)%s%s;\n" % (call, retFunc)
+								wrappersHeaderOut += "\tif(ptrRetVal == NULL) {\n"
+								wrappersHeaderOut += "\t\tlua_pushnil(L);\n"
+								wrappersHeaderOut += "\t} else {\n"
+								wrappersHeaderOut += "\t\t%s(L, ptrRetVal);\n" % (outfunc)
+								wrappersHeaderOut += "\t}\n"
+							elif basicType == True: # Returned var has been flagged as a recognized primitive type
+								wrappersHeaderOut += "\t%s(L, %s%s);\n" % (outfunc, call, retFunc)
+							else: # Some static object is being returned. Convert it to a pointer, then return that.
+								className = pm["rtnType"].replace("const", "").replace("&", "").replace("inline", "").replace("virtual", "").replace("static", "")
+								if className == "Polygon": # Deal with potential windows.h conflict
+									className = "Polycode::Polygon"
+								if className == "Rectangle":
+									className = "Polycode::Rectangle"
+								wrappersHeaderOut += "\t%s *retInst = new %s();\n" % (className, className)
+								wrappersHeaderOut += "\t*retInst = %s;\n" % (call)
+								wrappersHeaderOut += "\t%s(L, retInst);\n" % (outfunc)
+							wrappersHeaderOut += "\treturn 1;\n"
+					wrappersHeaderOut += "}\n\n" # Close out C++ generation
+
+					# Now generate the Lua side method.
+					if pm["name"] == ckey: # Constructors
+						luaClassBindingOut += "function %s:%s(...)\n" % (ckey, ckey)
+						if inherits:
+							luaClassBindingOut += "\tif type(arg[1]) == \"table\" and count(arg) == 1 then\n"
+							luaClassBindingOut += "\t\tif \"\"..arg[1]:class() == \"%s\" then\n" % (c["inherits"][0]["class"])
+							luaClassBindingOut += "\t\t\tself.__ptr = arg[1].__ptr\n"
+							luaClassBindingOut += "\t\t\treturn\n"
 							luaClassBindingOut += "\t\tend\n"
 							luaClassBindingOut += "\tend\n"
-							luaClassBindingOut += "\tif self.__ptr == nil and arg[1] ~= \"__skip_ptr__\" then\n"
-							if ckey == "EventHandler":
-								luaClassBindingOut += "\t\tself.__ptr = %s.%s(self)\n" % (libName, ckey)
-							else:
-								luaClassBindingOut += "\t\tself.__ptr = %s.%s(unpack(arg))\n" % (libName, ckey)
-							luaClassBindingOut += "\t\tPolycore.__ptr_lookup[self.__ptr] = self\n"
-							luaClassBindingOut += "\tend\n"
-							luaClassBindingOut += "end\n\n"
+						luaClassBindingOut += "\tfor k,v in pairs(arg) do\n"
+						luaClassBindingOut += "\t\tif type(v) == \"table\" then\n"
+						luaClassBindingOut += "\t\t\tif v.__ptr ~= nil then\n"
+						luaClassBindingOut += "\t\t\t\targ[k] = v.__ptr\n"
+						luaClassBindingOut += "\t\t\tend\n"
+						luaClassBindingOut += "\t\tend\n"
+						luaClassBindingOut += "\tend\n"
+						luaClassBindingOut += "\tif self.__ptr == nil and arg[1] ~= \"__skip_ptr__\" then\n"
+						if ckey == "EventHandler": # As above: Special case behavior for EventHandler. As above, TODO figure out why.
+							luaClassBindingOut += "\t\tself.__ptr = %s.%s(self)\n" % (libName, ckey)
 						else:
-							luaClassBindingOut += "function %s:%s(%s)\n" % (ckey, pm["name"], ", ".join(paramlist))
-							if pm["rtnType"].find("static ") == -1:
-								if len(lparamlist):
-									luaClassBindingOut += "\tlocal retVal = %s.%s_%s(self.__ptr, %s)\n" % (libName, ckey, pm["name"], ", ".join(lparamlist))
-								else:
-									luaClassBindingOut += "\tlocal retVal =  %s.%s_%s(self.__ptr)\n" % (libName, ckey, pm["name"])
+							luaClassBindingOut += "\t\tself.__ptr = %s.%s(unpack(arg))\n" % (libName, ckey)
+						luaClassBindingOut += "\t\tPolycore.__ptr_lookup[self.__ptr] = self\n"
+						luaClassBindingOut += "\tend\n"
+						luaClassBindingOut += "end\n\n"
+					else: # Non-constructors.
+						luaClassBindingOut += "function %s:%s(%s)\n" % (ckey, pm["name"], ", ".join(paramlist))
+						if pm["rtnType"].find("static ") == -1: # Non-static method
+							if len(lparamlist):
+								luaClassBindingOut += "\tlocal retVal = %s.%s_%s(self.__ptr, %s)\n" % (libName, ckey, pm["name"], ", ".join(lparamlist))
 							else:
-								if len(lparamlist):
-									luaClassBindingOut += "\tlocal retVal = %s.%s_%s(%s)\n" % (libName, ckey, pm["name"], ", ".join(lparamlist))
-								else:
-									luaClassBindingOut += "\tlocal retVal =  %s.%s_%s()\n" % (libName, ckey, pm["name"])
+								luaClassBindingOut += "\tlocal retVal =  %s.%s_%s(self.__ptr)\n" % (libName, ckey, pm["name"])
+						else: # Static method
+							if len(lparamlist):
+								luaClassBindingOut += "\tlocal retVal = %s.%s_%s(%s)\n" % (libName, ckey, pm["name"], ", ".join(lparamlist))
+							else:
+								luaClassBindingOut += "\tlocal retVal =  %s.%s_%s()\n" % (libName, ckey, pm["name"])
 
-							if not voidRet:
-								if basicType == True:
-									luaClassBindingOut += "\treturn retVal\n"
-								else:
-									className = pm["rtnType"].replace("const", "").replace("&", "").replace("inline", "").replace("virtual", "").replace("static", "").replace("*","").replace(" ", "")
-									luaClassBindingOut += "\tif retVal == nil then return nil end\n"
-									luaClassBindingOut += "\tif Polycore.__ptr_lookup[retVal] ~= nil then\n"
-									luaClassBindingOut += "\t\treturn Polycore.__ptr_lookup[retVal]\n"
-									luaClassBindingOut += "\telse\n"
-									luaClassBindingOut += "\t\tPolycore.__ptr_lookup[retVal] = %s(\"__skip_ptr__\")\n" % (className)
-									luaClassBindingOut += "\t\tPolycore.__ptr_lookup[retVal].__ptr = retVal\n"
-									luaClassBindingOut += "\t\treturn Polycore.__ptr_lookup[retVal]\n"
-									luaClassBindingOut += "\tend\n"
-							luaClassBindingOut += "end\n\n"
+						if not voidRet: # Was there a return value?
+							if basicType == True: # Yes, a primitive
+								luaClassBindingOut += "\treturn retVal\n"
+							else: # Yes, a pointer was returned
+								className = pm["rtnType"].replace("const", "").replace("&", "").replace("inline", "").replace("virtual", "").replace("static", "").replace("*","").replace(" ", "")
+								luaClassBindingOut += "\tif retVal == nil then return nil end\n"
+								luaClassBindingOut += "\tif Polycore.__ptr_lookup[retVal] ~= nil then\n"
+								luaClassBindingOut += "\t\treturn Polycore.__ptr_lookup[retVal]\n"
+								luaClassBindingOut += "\telse\n"
+								luaClassBindingOut += "\t\tPolycore.__ptr_lookup[retVal] = %s(\"__skip_ptr__\")\n" % (className)
+								luaClassBindingOut += "\t\tPolycore.__ptr_lookup[retVal].__ptr = retVal\n"
+								luaClassBindingOut += "\t\treturn Polycore.__ptr_lookup[retVal]\n"
+								luaClassBindingOut += "\tend\n"
+						luaClassBindingOut += "end\n\n" # Close out Lua generation
 
-					parsed_methods.append(pm["name"])
+					parsed_methods.append(pm["name"]) # Method parse success
 
-				#cleanup
+				# With methods out of the way, do some final cleanup:
+				
+				# Delete method (C++ side)
 				cppRegisterOut += "\t\t{\"delete_%s\", %s_delete_%s},\n" % (ckey, libName, ckey)
 				wrappersHeaderOut += "static int %s_delete_%s(lua_State *L) {\n" % (libName, ckey)
 				wrappersHeaderOut += "\tluaL_checktype(L, 1, LUA_TLIGHTUSERDATA);\n"
@@ -454,12 +487,13 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				wrappersHeaderOut += "\treturn 0;\n"
 				wrappersHeaderOut += "}\n\n"
 
+				# Delete method (Lua side)
 				luaClassBindingOut += "\n\n"
 				luaClassBindingOut += "function %s:__delete()\n" % (ckey)
 				luaClassBindingOut += "\tPolycore.__ptr_lookup[self.__ptr] = nil\n"
 				luaClassBindingOut += "\t%s.delete_%s(self.__ptr)\n" % (libName, ckey)
 				luaClassBindingOut += "end\n"
-				if ckey == "EventHandler":
+				if ckey == "EventHandler": # TODO Why the eventhandler special case?
 					luaClassBindingOut += "\n\n"
 					luaClassBindingOut += "function EventHandler:__handleEvent(event)\n"
 					luaClassBindingOut += "\tevt = Event(\"__skip_ptr__\")\n"
@@ -467,7 +501,10 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					luaClassBindingOut += "\tself:handleEvent(evt)\n"
 					#luaClassBindingOut += "\tself:handleEvent(event)\n"
 					luaClassBindingOut += "end\n"
+					
+				# Add class to lua index file
 				luaIndexOut += "require \"%s/%s\"\n" % (prefix, ckey)
+				# Write lua file
 				mkdir_p(apiClassPath)
 				fout = open("%s/%s.lua" % (apiClassPath, ckey), "w")
 				fout.write(luaClassBindingOut)
