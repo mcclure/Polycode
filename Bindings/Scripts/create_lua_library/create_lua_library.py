@@ -163,12 +163,12 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						# If type is a class
 						else:
 							luaClassBindingOut += "\t\tretVal = %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
-							luaClassBindingOut += "\t\tif Polycore.__ptr_lookup[retVal] ~= nil then\n"
-							luaClassBindingOut += "\t\t\treturn Polycore.__ptr_lookup[retVal]\n"
+							luaClassBindingOut += "\t\tif %s.__ptr_lookup[retVal] ~= nil then\n" % (ckey)
+							luaClassBindingOut += "\t\t\treturn %s.__ptr_lookup[retVal]\n" % (ckey)
 							luaClassBindingOut += "\t\telse\n"
-							luaClassBindingOut += "\t\t\tPolycore.__ptr_lookup[retVal] = %s(\"__skip_ptr__\")\n" % (pp["type"])
-							luaClassBindingOut += "\t\t\tPolycore.__ptr_lookup[retVal].__ptr = retVal\n"
-							luaClassBindingOut += "\t\t\treturn Polycore.__ptr_lookup[retVal]\n"
+							luaClassBindingOut += "\t\t\t%s.__ptr_lookup[retVal] = %s(\"__skip_ptr__\")\n" % (ckey, pp["type"])
+							luaClassBindingOut += "\t\t\t%s.__ptr_lookup[retVal].__ptr = retVal\n" % (ckey)
+							luaClassBindingOut += "\t\t\treturn %s.__ptr_lookup[retVal]\n" % (ckey)
 							luaClassBindingOut += "\t\tend\n"
 
 						# Generate C++ side of binding:
@@ -446,7 +446,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							luaClassBindingOut += "\t\tself.__ptr = %s.%s(self)\n" % (libName, ckey)
 						else:
 							luaClassBindingOut += "\t\tself.__ptr = %s.%s(unpack(arg))\n" % (libName, ckey)
-						luaClassBindingOut += "\t\tPolycore.__ptr_lookup[self.__ptr] = self\n"
+						luaClassBindingOut += "\t\t%s.__ptr_lookup[self.__ptr] = self\n" % (ckey)
 						luaClassBindingOut += "\tend\n"
 						luaClassBindingOut += "end\n\n"
 					else: # Non-constructors.
@@ -468,12 +468,12 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							else: # Yes, a pointer was returned
 								className = pm["rtnType"].replace("const", "").replace("&", "").replace("inline", "").replace("virtual", "").replace("static", "").replace("*","").replace(" ", "")
 								luaClassBindingOut += "\tif retVal == nil then return nil end\n"
-								luaClassBindingOut += "\tif Polycore.__ptr_lookup[retVal] ~= nil then\n"
-								luaClassBindingOut += "\t\treturn Polycore.__ptr_lookup[retVal]\n"
+								luaClassBindingOut += "\tif %s.__ptr_lookup[retVal] ~= nil then\n" % (className)
+								luaClassBindingOut += "\t\treturn %s.__ptr_lookup[retVal]\n" % (className)
 								luaClassBindingOut += "\telse\n"
-								luaClassBindingOut += "\t\tPolycore.__ptr_lookup[retVal] = %s(\"__skip_ptr__\")\n" % (className)
-								luaClassBindingOut += "\t\tPolycore.__ptr_lookup[retVal].__ptr = retVal\n"
-								luaClassBindingOut += "\t\treturn Polycore.__ptr_lookup[retVal]\n"
+								luaClassBindingOut += "\t\t%s.__ptr_lookup[retVal] = %s(\"__skip_ptr__\")\n" % (className, className)
+								luaClassBindingOut += "\t\t%s.__ptr_lookup[retVal].__ptr = retVal\n" % (className)
+								luaClassBindingOut += "\t\treturn %s.__ptr_lookup[retVal]\n" % (className)
 								luaClassBindingOut += "\tend\n"
 						luaClassBindingOut += "end\n\n" # Close out Lua generation
 
@@ -492,8 +492,9 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 				# Delete method (Lua side)
 				luaClassBindingOut += "\n\n"
+				luaClassBindingOut += "%s.__ptr_lookup = {}\n\n" % (ckey)
 				luaClassBindingOut += "function %s:__delete()\n" % (ckey)
-				luaClassBindingOut += "\tPolycore.__ptr_lookup[self.__ptr] = nil\n"
+				luaClassBindingOut += "\t%s.__ptr_lookup[self.__ptr] = nil\n" % (ckey)
 				luaClassBindingOut += "\t%s.delete_%s(self.__ptr)\n" % (libName, ckey)
 				luaClassBindingOut += "end\n"
 				if ckey == "EventHandler": # TODO Why the eventhandler special case?
