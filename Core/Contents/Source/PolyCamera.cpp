@@ -44,9 +44,11 @@ Camera::Camera(Scene *parentScene) : SceneEntity() {
 	fovSet = false;
 }
 
-Camera::~Camera() {
-	for(int i=0; i < localShaderOptions.size(); i++)
+Camera::~Camera() {	
+	for(int i=0; i < localShaderOptions.size(); i++) {
 		delete localShaderOptions[i];
+	}
+
 	delete originalSceneTexture;
 	delete zBufferSceneTexture;
 }

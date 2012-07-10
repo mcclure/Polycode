@@ -56,7 +56,7 @@ void ScreenLabel::addDropShadow(Color color, Number size, Number offsetX, Number
 	delete dropShadowImage;
 	Image *labelImage = new Image(label);
 	labelImage->fastBlur(size);
-	dropShadowImage = new ScreenImage(labelImage);
+	dropShadowImage = new ScreenImage(labelImage);	
 	delete labelImage;
 	addChild(dropShadowImage);
 	dropShadowImage->setColor(color);

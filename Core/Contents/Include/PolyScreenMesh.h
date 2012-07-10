@@ -80,7 +80,7 @@ namespace Polycode {
 			
 			/**
 			* Applies a texture
-			* @param Texture to apply.
+			* @param texture to apply.
 			*/						
 			void setTexture(Texture *texture);
 			
@@ -91,6 +91,10 @@ namespace Polycode {
 			
 			Number lineWidth;
 			
+			/**
+			* If true, will delete its Mesh upon destruction. (defaults to true)
+			*/ 			
+			bool ownsMesh;
 			
 		protected:
 		

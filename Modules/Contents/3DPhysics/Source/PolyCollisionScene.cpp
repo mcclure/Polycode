@@ -21,25 +21,21 @@ THE SOFTWARE.
 */
 
 #include "PolyCollisionScene.h"
-#include "btBulletCollisionCommon.h"
 #include "PolyCollisionSceneEntity.h"
 #include "PolySceneEntity.h"
 
 using namespace Polycode;
 
-CollisionScene::CollisionScene() : Scene(), world(NULL), axisSweep(NULL), dispatcher(NULL), collisionConfiguration(NULL) {
-	initCollisionScene();
+CollisionScene::CollisionScene(Vector3 size, bool virtualScene, bool deferInitCollision) : Scene(virtualScene), world(NULL), axisSweep(NULL), dispatcher(NULL), collisionConfiguration(NULL){ 
+	if(!deferInitCollision) {
+		initCollisionScene(size);
+	}
 }
 
-CollisionScene::CollisionScene(bool virtualScene, bool deferInitCollision) : Scene(virtualScene), world(NULL), axisSweep(NULL), dispatcher(NULL), collisionConfiguration(NULL) { 
-	if (!deferInitCollision)
-		initCollisionScene();
-}
-
-void CollisionScene::initCollisionScene() {
+void CollisionScene::initCollisionScene(Vector3 size) {
 	
-	btVector3	worldAabbMin(-1000,-1000,-1000);
-	btVector3	worldAabbMax(1000,1000,1000);
+	btVector3	worldAabbMin(-size.x * 0.5, -size.y * 0.5, -size.z * 0.5);
+	btVector3	worldAabbMax(size.x * 0.5, size.y * 0.5, size.z * 0.5);
 	
 	collisionConfiguration = new btDefaultCollisionConfiguration();
 	dispatcher = new btCollisionDispatcher(collisionConfiguration);
@@ -197,8 +193,9 @@ CollisionResult CollisionScene::testCollision(SceneEntity *ent1, SceneEntity *en
 }
 
 CollisionScene::~CollisionScene() {
-	for(int i=0; i < collisionChildren.size(); i++)
+	for(int i=0; i < collisionChildren.size(); i++) {
 		delete collisionChildren[i];
+	}
 	delete world;
 	delete axisSweep;
 	delete dispatcher;
@@ -215,8 +212,7 @@ void CollisionScene::removeCollision(SceneEntity *entity) {
 				delete *target;
 				collisionChildren.erase(target);
 			}
-		}			
-		delete cEnt;
+		}
 	}
 
 }

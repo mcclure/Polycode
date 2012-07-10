@@ -43,32 +43,32 @@ Scene::Scene() : EventDispatcher() {
 	fogEnabled = false;
 	lightingEnabled = false;
 	enabled = true;
-	ownsChildren = false;
-	ownsCamera = true;
 	isSceneVirtual = false;
-	CoreServices::getInstance()->getSceneManager()->addScene(this);
-	
 	hasLightmaps = false;
 	clearColor.setColor(0.13f,0.13f,0.13f,1.0f); 
 	ambientColor.setColor(0.0,0.0,0.0,1.0);
-	useClearColor = false;	
+	useClearColor = false;
+	ownsChildren = false;
+	ownsCamera = true;
+	CoreServices::getInstance()->getSceneManager()->addScene(this);	
 }
 
-Scene::Scene(bool virtualScene) {
+Scene::Scene(bool virtualScene) : EventDispatcher() {
 	defaultCamera = new Camera(this);
 	activeCamera = defaultCamera;	
 	fogEnabled = false;
 	lightingEnabled = false;
 	enabled = true;
-	ownsChildren = false;
-	ownsCamera = true;
-	isSceneVirtual = virtualScene;
-	if (!isSceneVirtual)
-		CoreServices::getInstance()->getSceneManager()->addScene(this);
-	
+	isSceneVirtual = virtualScene;	
 	hasLightmaps = false;
 	clearColor.setColor(0.13f,0.13f,0.13f,1.0f); 
-	useClearColor = false;	
+	ambientColor.setColor(0.0,0.0,0.0,1.0);	
+	useClearColor = false;
+	ownsChildren = false;
+	ownsCamera = true;
+	if (!isSceneVirtual) {
+		CoreServices::getInstance()->getSceneManager()->addScene(this);
+	}
 }
 
 void Scene::setActiveCamera(Camera *camera) {
@@ -100,13 +100,12 @@ void Scene::Update() {
 }
 
 Scene::~Scene() {
-	Logger::log("Cleaning scene...\n");
-	if (ownsChildren) {
+	if(ownsChildren) {
 		for(int i=0; i < entities.size(); i++) {	
 			delete entities[i];
 		}
 	}
-	CoreServices::getInstance()->getSceneManager()->removeScene(this);
+	CoreServices::getInstance()->getSceneManager()->removeScene(this);	
 	if (ownsCamera)
 		delete defaultCamera;
 }

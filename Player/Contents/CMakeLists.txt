@@ -136,7 +136,7 @@ endif()
         ${LUA_LIBRARY}
         ${OPENGL_LIBRARIES}
         ${OPENAL_LIBRARY}
-	${ZLIB_LIBRARIES}
+        ${ZLIB_LIBRARIES}
         ${PNG_LIBRARIES}
         ${FREETYPE_LIBRARIES}
         ${PHYSFS_LIBRARY}
@@ -153,7 +153,7 @@ endif()
         ${LUA_LIBRARY}
         ${OPENGL_LIBRARIES}
         ${OPENAL_LIBRARY}
-	${ZLIB_LIBRARIES}
+        ${ZLIB_LIBRARIES}
         ${PNG_LIBRARIES}
         ${FREETYPE_LIBRARIES}
         ${PHYSFS_LIBRARY}
@@ -239,7 +239,6 @@ ELSE(MSVC OR MINGW)
         ${OPENGL_LIBRARIES}
         ${OPENAL_LIBRARY}
         ${PNG_LIBRARIES}
-        ${ZLIB_LIBRARIES}
         ${FREETYPE_LIBRARIES}
         ${PHYSFS_LIBRARY}
         ${OGG_LIBRARY}
@@ -255,7 +254,6 @@ ELSE(MSVC OR MINGW)
         ${OPENGL_LIBRARIES}
         ${OPENAL_LIBRARY}
         ${PNG_LIBRARIES}
-        ${ZLIB_LIBRARIES}
         ${FREETYPE_LIBRARIES}
         ${PHYSFS_LIBRARY}
         ${OGG_LIBRARY}
@@ -287,4 +285,4 @@ ELSE(MSVC OR MINGW)
     INSTALL(FILES "${Polycode_SOURCE_DIR}/Assets/Default\ asset\ pack/hdr.pak" DESTINATION Player)
     INSTALL(FILES "${Polycode_SOURCE_DIR}/Assets/SamplePolyapp/main.polyapp" DESTINATION Player)
     INSTALL(FILES "${Polycode_SOURCE_DIR}/Bindings/Contents/LUA/API/api.pak" DESTINATION Player)
-ENDIF(MSVC)
+ENDIF(MSVC OR MINGW)

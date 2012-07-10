@@ -35,52 +35,47 @@
 
 using namespace Polycode;
 
-SceneMesh::SceneMesh(const String& fileName) : SceneEntity(), texture(NULL), material(NULL) {
+SceneMesh::SceneMesh(const String& fileName) : SceneEntity(), texture(NULL), material(NULL), skeleton(NULL), localShaderOptions(NULL) {
 	mesh = new Mesh(fileName);
 	bBoxRadius = mesh->getRadius();
 	bBox = mesh->calculateBBox();
-	skeleton = NULL;
-	localShaderOptions = NULL;
 	lightmapIndex=0;
 	showVertexNormals = false;
 	useVertexBuffer = false;
 	lineSmooth = false;
-	lineWidth = 1.0;
 	ownsMesh = true;
+	ownsSkeleton = true;
 	ownsTexture = false;
-	ownsSkeleton = false;
+	lineWidth = 1.0;
 }
 
-SceneMesh::SceneMesh(Mesh *mesh) : SceneEntity(), texture(NULL), material(NULL) {
+SceneMesh::SceneMesh(Mesh *mesh) : SceneEntity(), texture(NULL), material(NULL), skeleton(NULL), localShaderOptions(NULL) {
 	this->mesh = mesh;
 	bBoxRadius = mesh->getRadius();
 	bBox = mesh->calculateBBox();
-	skeleton = NULL;
-	localShaderOptions = NULL;
 	lightmapIndex=0;
 	showVertexNormals = false;	
 	useVertexBuffer = false;
 	lineSmooth = false;
-	lineWidth = 1.0;
-	ownsMesh = false;
+	ownsMesh = true;
+	ownsSkeleton = true;	
 	ownsTexture = false;
-	ownsSkeleton = false;
+	lineWidth = 1.0;
+		
 }
 
-SceneMesh::SceneMesh(int meshType) : texture(NULL), material(NULL) {
+SceneMesh::SceneMesh(int meshType) : texture(NULL), material(NULL), skeleton(NULL), localShaderOptions(NULL) {
 	mesh = new Mesh(meshType);
 	bBoxRadius = mesh->getRadius();
 	bBox = mesh->calculateBBox();
-	skeleton = NULL;
-	localShaderOptions = NULL;
 	lightmapIndex=0;
 	showVertexNormals = false;	
 	useVertexBuffer = false;	
 	lineSmooth = false;
-	lineWidth = 1.0;
 	ownsMesh = true;
+	ownsSkeleton = true;	
 	ownsTexture = false;
-	ownsSkeleton = false;
+	lineWidth = 1.0;	
 }
 
 void SceneMesh::setMesh(Mesh *mesh) {
@@ -92,14 +87,14 @@ void SceneMesh::setMesh(Mesh *mesh) {
 	ownsMesh = false;
 }
 
-// Assume material is managed externally.
+
 SceneMesh::~SceneMesh() {
-	if (ownsMesh)
-		delete mesh;
+	if(ownsSkeleton)
+		delete skeleton;
+	if(ownsMesh)
+		delete mesh;	
 	if (ownsTexture)
 		delete texture;
-	if (ownsSkeleton)
-		delete skeleton;
 	delete localShaderOptions;
 }
 

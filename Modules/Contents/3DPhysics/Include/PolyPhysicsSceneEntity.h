@@ -38,7 +38,7 @@ namespace Polycode {
 	*/
 	class _PolyExport PhysicsSceneEntity : public CollisionSceneEntity {
 	public:
-		PhysicsSceneEntity(SceneEntity *entity, int type, Number mass, Number friction, Number restitution);
+		PhysicsSceneEntity(SceneEntity *entity, int type, Number mass, Number friction, Number restitution, bool compoundChildren = false);
 		virtual ~PhysicsSceneEntity();
 		virtual void Update();
 				
@@ -111,8 +111,7 @@ namespace Polycode {
 	
 		Number mass;
 		
-		// Kept just to be deleted
-		btDefaultMotionState* myMotionState;
+		btDefaultMotionState* myMotionState;		
 	};
 	
 	/**

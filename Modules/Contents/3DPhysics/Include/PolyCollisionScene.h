@@ -24,13 +24,11 @@ THE SOFTWARE.
 #include "PolyGlobals.h"
 #include "PolyScene.h"
 #include "PolyVector3.h"
+#include "btBulletCollisionCommon.h"
 #include <vector>
 
 class btCollisionObject;
 class btCollisionWorld;
-class btDefaultCollisionConfiguration;
-class btCollisionDispatcher;
-class btAxisSweep3;
 
 namespace Polycode {
 
@@ -89,11 +87,10 @@ struct CollisionResult {
 			/**
 			* Creates a collision scene.
 			*/
-			CollisionScene();
-			CollisionScene(bool virtualScene, bool deferInitCollision = false);		
+			CollisionScene(Vector3 size = Vector3(2000), bool virtualScene = false, bool deferInitCollision = false);		
 			virtual ~CollisionScene();
 		
-			void initCollisionScene();
+			void initCollisionScene(Vector3 size);
 		
 			virtual void Update();
 			
@@ -126,11 +123,10 @@ struct CollisionResult {
 		
 			std::vector<CollisionSceneEntity*> collisionChildren;
 			btCollisionWorld *world;
-		
-			// Kept only to be deleted
+			
 			btDefaultCollisionConfiguration *collisionConfiguration;
-			btCollisionDispatcher* dispatcher;
-			btAxisSweep3*	axisSweep;
+			btCollisionDispatcher *dispatcher;
+			btAxisSweep3*  axisSweep;
 	};
 
 }

@@ -131,25 +131,27 @@ namespace Polycode {
 			void cacheToVertexBuffer(bool cache);
 	
 			unsigned int lightmapIndex;
-				
+			
 			bool showVertexNormals;
-		
-			/**
-			 * If this is set to true, the mesh will be deleted when the mesh is deleted. Defaults false, is set false when an external mesh is passed in and true when an internal mesh is created.
-			 */
-			bool ownsMesh;
+	
+					
+			Number lineWidth;
+			bool lineSmooth;
 			
 			/**
-			 * If this is set to true, the texture will be deleted when the mesh is deleted. Defaults false, is set false when an external texture is passed in and true when an internal texture is created.
+			* If true, will delete its Mesh upon destruction. (defaults to true)
+			*/ 
+			bool ownsMesh;
+
+			/**
+			* If true, will delete its Skeleton upon destruction. (defaults to true)
+			*/ 			
+			bool ownsSkeleton;
+			
+			/**
+			 * If true, will delete its Texture upon destruction. (defaults to false)
 			 */
 			bool ownsTexture;
-			
-			/**
-			 * If this is set to true, the skeleton will be deleted when the mesh is deleted. Defaults false, is set false when an external skeleton is passed in and true when an internal skeleton is created.
-			 */
-			bool ownsSkeleton;
-			Number lineWidth;
-			bool lineSmooth;	
 		
 		protected:
 		

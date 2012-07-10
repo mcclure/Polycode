@@ -152,9 +152,9 @@ namespace Polycode {
 		bool processTouchEventsAsMouse;
 		
 		/**
-		 * If set to true, children will be deleted when the screen is deleted. Defaults false.
-		 */
-		bool ownsChildren;
+		* If ownsChildren is set to true, the scene will delete its children upon destruction (defaults to false).
+		*/
+		bool ownsChildren;		
 		
 	protected:
 		
@@ -169,7 +169,7 @@ namespace Polycode {
 		std::vector <ScreenEntity*> children;
 		
 		Material *filterShaderMaterial;			
-		Texture *originalSceneTexture;			
+		Texture *originalSceneTexture;				
 		std::vector<ShaderBinding*> localShaderOptions;
 		bool _hasFilterShader;
 	};
