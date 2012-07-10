@@ -422,7 +422,7 @@ bool ScreenEntity::_onMouseUp(Number x, Number y, int mouseButton, int timestamp
 	return retVal;
 }
 
-bool ScreenEntity::_onMouseWheelUp(Number x, Number y, int timestamp, Vector2 parentAdjust) {
+void ScreenEntity::_onMouseWheelUp(Number x, Number y, int timestamp, Vector2 parentAdjust) {
 	bool retVal = false;
 	
 	bool doTest = true;	
@@ -472,7 +472,7 @@ bool ScreenEntity::_onMouseWheelUp(Number x, Number y, int timestamp, Vector2 pa
 	return retVal;
 }
 
-bool ScreenEntity::_onMouseWheelDown(Number x, Number y, int timestamp, Vector2 parentAdjust) {
+void ScreenEntity::_onMouseWheelDown(Number x, Number y, int timestamp, Vector2 parentAdjust) {
 	bool retVal = false;
 	
 	bool doTest = true;	
