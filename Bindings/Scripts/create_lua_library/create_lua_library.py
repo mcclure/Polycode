@@ -130,6 +130,8 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				for pp in c["properties"]["public"]:
 					pp["type"] = pp["type"].replace("Polycode::", "")
 					pp["type"] = pp["type"].replace("std::", "")
+					if pp["type"].find("POLYIGNORE") != -1:
+						continue
 					if pp["type"].find("static ") != -1: # If static. FIXME: Static doesn't work?
 						if "defaltValue" in pp: # FIXME: defaltValue is misspelled.
 							luaClassBindingOut += "%s = %s\n" % (pp["name"], pp["defaltValue"])
@@ -263,7 +265,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					# Skip argument-overloaded methods and operators.
 					# TODO: Instead of skipping arguemnt overloads, have special behavior.
 					# TODO: Instead of skipping operators, add to metatable.
-					if pm["name"] in parsed_methods or pm["name"].find("operator") > -1 or pm["name"] in ignore_methods:
+					if pm["name"] in parsed_methods or pm["name"].find("operator") > -1 or pm["rtnType"].find("POLYIGNORE") > -1 or pm["name"] in ignore_methods:
 						continue
 
 					# Skip destructors and methods which return templates.
