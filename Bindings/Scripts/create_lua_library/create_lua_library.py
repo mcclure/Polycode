@@ -295,7 +295,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						idx = 2
 					
 					if rawMethod:
-						print("LUA_TEST !!!")
+						wrappersHeaderOut += "\treturn inst->%s(L);\n" % (pm["name"])
 					else:	
 						# Generate C++ side parameter pushing
 						paramlist = []
@@ -441,7 +441,9 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 					# Now generate the Lua side method.
 					if rawMethod:
-						pass
+						luaClassBindingOut += "function %s:%s(...)\n" % (ckey, pm["name"])
+						luaClassBindingOut += "\treturn %s.%s_%s(self.__ptr, ...)\n" % (libName, ckey, pm["name"])
+						luaClassBindingOut += "end\n"
 					elif pm["name"] == ckey: # Constructors
 						luaClassBindingOut += "function %s:%s(...)\n" % (ckey, ckey)
 						if inherits:
