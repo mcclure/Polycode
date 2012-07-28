@@ -36,11 +36,11 @@ void ObjectEntry::Clear() {
 String ObjectEntry::getTypedName() const {
 	const String _name = name.size() > 0 ? name : String("nil");
 	if (type == ObjectEntry::ARRAY_ENTRY)
-		return String("polyarray:") + name;
+		return String("polyarray:") + _name;
 	
 	// TODO: In interest of consistency, make sure that STRING_ENTRYs stay STRING_ENTRYs (etc) if they're ambiguous
 	
-	return name;
+	return _name;
 }	
 	
 void ObjectEntry::setTypedName(const String &str) {
@@ -96,35 +96,40 @@ TiXmlElement *Object::createElementFromObjectEntry(ObjectEntry *entry) {
 	
 	for(int i=0; i < entry->children.size(); i++) {
 		ObjectEntry *childEntry = entry->children[i];
-		bool need
+		bool needLinkChild = entry->type == ObjectEntry::ARRAY_ENTRY;
 		
 //		printf("Parsing %s (type: %d)\n", childEntry->name.c_str(), childEntry->type);
 		
-		switch(childEntry->type) {
-			case ObjectEntry::BOOL_ENTRY:
-				if(childEntry->boolVal)
-					newElement->SetAttribute(childEntry->name.c_str(), "true");
-				else
-					newElement->SetAttribute(childEntry->name.c_str(), "false");
-			break;
-			case ObjectEntry::FLOAT_ENTRY:
-				newElement->SetAttribute(childEntry->name.c_str(), String::NumberToString(childEntry->NumberVal).c_str());								
-			break;
-			case ObjectEntry::INT_ENTRY:				
-				newElement->SetAttribute(childEntry->name.c_str(), childEntry->intVal);												
-			break;
-			case ObjectEntry::STRING_ENTRY: 
-			{
-				TiXmlElement *childElement = new TiXmlElement(childEntry->name.c_str());  
-				childElement->LinkEndChild( new TiXmlText(childEntry->stringVal.c_str()));
-				newElement->LinkEndChild(childElement);								
-			} break;
-			default:
-			{
-				TiXmlElement *childElement = createElementFromObjectEntry(entry->children[i]);
-				newElement->LinkEndChild(childElement);				
+		if (!needLinkChild) {
+			const String &childTypedName = entry->getTypedName();
+			switch(childEntry->type) {
+				case ObjectEntry::BOOL_ENTRY:
+					if(childEntry->boolVal)
+						newElement->SetAttribute(childTypedName.c_str(), "true");
+					else
+						newElement->SetAttribute(childTypedName.c_str(), "false");
+				break;
+				case ObjectEntry::FLOAT_ENTRY:
+					newElement->SetAttribute(childTypedName.c_str(), String::NumberToString(childEntry->NumberVal).c_str());								
+				break;
+				case ObjectEntry::INT_ENTRY:				
+					newElement->SetAttribute(childTypedName.c_str(), childEntry->intVal);												
+				break;
+				case ObjectEntry::STRING_ENTRY: 
+				{
+					TiXmlElement *childElement = new TiXmlElement(childTypedName.c_str());  
+					childElement->LinkEndChild( new TiXmlText(childEntry->stringVal.c_str()));
+					newElement->LinkEndChild(childElement);								
+				} break;
+				default:
+					needLinkChild = true;
+				break;
 			}
-			break;
+		}
+		
+		if (needLinkChild) {
+			TiXmlElement *childElement = createElementFromObjectEntry(entry->children[i]);
+			newElement->LinkEndChild(childElement);
 		}
 	}
 	
