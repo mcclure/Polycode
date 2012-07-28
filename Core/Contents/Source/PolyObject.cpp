@@ -22,6 +22,7 @@
  
 #include "PolyObject.h"
 #include "tinyxml.h"
+#include <sstream>
 
 using namespace Polycode;
 
@@ -94,43 +95,63 @@ TiXmlElement *Object::createElementFromObjectEntry(ObjectEntry *entry) {
 	const String &typedName = entry->getTypedName();
 	TiXmlElement *newElement = new TiXmlElement(typedName.c_str());
 	
-	for(int i=0; i < entry->children.size(); i++) {
-		ObjectEntry *childEntry = entry->children[i];
-		bool needLinkChild = entry->type == ObjectEntry::ARRAY_ENTRY;
-		
-//		printf("Parsing %s (type: %d)\n", childEntry->name.c_str(), childEntry->type);
-		
-		if (!needLinkChild) {
-			const String &childTypedName = entry->getTypedName();
-			switch(childEntry->type) {
-				case ObjectEntry::BOOL_ENTRY:
-					if(childEntry->boolVal)
-						newElement->SetAttribute(childTypedName.c_str(), "true");
-					else
-						newElement->SetAttribute(childTypedName.c_str(), "false");
-				break;
-				case ObjectEntry::FLOAT_ENTRY:
-					newElement->SetAttribute(childTypedName.c_str(), String::NumberToString(childEntry->NumberVal).c_str());								
-				break;
-				case ObjectEntry::INT_ENTRY:				
-					newElement->SetAttribute(childTypedName.c_str(), childEntry->intVal);												
-				break;
-				case ObjectEntry::STRING_ENTRY: 
-				{
-					TiXmlElement *childElement = new TiXmlElement(childTypedName.c_str());  
-					childElement->LinkEndChild( new TiXmlText(childEntry->stringVal.c_str()));
-					newElement->LinkEndChild(childElement);								
-				} break;
-				default:
-					needLinkChild = true;
-				break;
+	switch(entry->type) {
+		case ObjectEntry::BOOL_ENTRY: {
+			newElement->LinkEndChild(new TiXmlText( entry->boolVal ? "true" : "false" ));
+		} break;
+		case ObjectEntry::FLOAT_ENTRY: case ObjectEntry::INT_ENTRY: {
+			std::ostringstream o;
+			if (entry->type == ObjectEntry::FLOAT_ENTRY)
+				o << entry->NumberVal;
+			else
+				o << entry->intVal;
+			newElement->LinkEndChild(new TiXmlText( o.str().c_str() ));
+		} break;
+		case ObjectEntry::STRING_ENTRY: {
+			newElement->LinkEndChild(new TiXmlText( entry->stringVal.c_str() ));
+		} break;
+		default: { // Some sort of container.
+			for(int i=0; i < entry->children.size(); i++) {
+				ObjectEntry *childEntry = entry->children[i];
+				bool needLinkChild = entry->type == ObjectEntry::ARRAY_ENTRY;
+				
+		//		printf("Parsing %s (type: %d)\n", childEntry->name.c_str(), childEntry->type);
+				
+				if (!needLinkChild) {
+					const String &childTypedName = entry->getTypedName();
+					switch(childEntry->type) {
+						case ObjectEntry::BOOL_ENTRY:
+							if(childEntry->boolVal)
+								newElement->SetAttribute(childTypedName.c_str(), "true");
+							else
+								newElement->SetAttribute(childTypedName.c_str(), "false");
+						break;
+						case ObjectEntry::FLOAT_ENTRY: {
+							std::ostringstream o; // Avoid NumberToString, it truncates
+							o << entry->NumberVal;
+							newElement->SetAttribute(childTypedName.c_str(), o.str().c_str());
+						} break;
+						case ObjectEntry::INT_ENTRY:				
+							newElement->SetAttribute(childTypedName.c_str(), childEntry->intVal);												
+						break;
+						case ObjectEntry::STRING_ENTRY: 
+						{
+							TiXmlElement *childElement = new TiXmlElement(childTypedName.c_str());  
+							childElement->LinkEndChild( new TiXmlText(childEntry->stringVal.c_str()));
+							newElement->LinkEndChild(childElement);								
+						} break;
+						default:
+							needLinkChild = true;
+						break;
+					}
+				}
+				
+				if (needLinkChild) {
+					TiXmlElement *childElement = createElementFromObjectEntry(entry->children[i]);
+					newElement->LinkEndChild(childElement);
+				}
 			}
-		}
-		
-		if (needLinkChild) {
-			TiXmlElement *childElement = createElementFromObjectEntry(entry->children[i]);
-			newElement->LinkEndChild(childElement);
-		}
+		} break;
 	}
 	
 	return newElement;
