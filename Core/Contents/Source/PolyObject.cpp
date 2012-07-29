@@ -38,8 +38,10 @@ String ObjectEntry::getTypedName() const {
 	const String _name = name.size() > 0 ? name : String("nil");
 	if (type == ObjectEntry::ARRAY_ENTRY)
 		return String("polyarray:") + _name;
+	if (type == ObjectEntry::STRING_ENTRY && stringVal.size() == 0)
+		return String("polystring:") + _name;
 	
-	// TODO: In interest of consistency, make sure that STRING_ENTRYs stay STRING_ENTRYs (etc) if they're ambiguous
+	// TODO: In interest of consistency, make sure that STRING_ENTRYs stay STRING_ENTRYs (etc) if they're ambiguous (i.e. contain numbers)
 	
 	return _name;
 }	
@@ -68,7 +70,8 @@ void ObjectEntry::setTypedName(const String &str) {
 			
 	}
 	if (name == "nil")
-		name.contents.clear();	
+		name.contents.clear();
+	
 }
 
 Object::Object() {
@@ -202,14 +205,14 @@ void Object::createFromXMLElement(TiXmlElement *element, ObjectEntry *entry) {
 		newEntry->type = ObjectEntry::STRING_ENTRY;		
 		newEntry->stringVal = pAttrib->Value();
 		
-		if(newEntry->stringVal.find(".") != -1 && pAttrib->QueryDoubleValue(&dval)==TIXML_SUCCESS) {
-			newEntry->NumberVal = dval;
-			newEntry->intVal = dval;				
-			newEntry->type = ObjectEntry::FLOAT_ENTRY;				
-		} else if (pAttrib->QueryIntValue(&ival)==TIXML_SUCCESS) {
+		if (newEntry->stringVal.find(".") == -1 && pAttrib->QueryIntValue(&ival)==TIXML_SUCCESS) {
 			newEntry->intVal = ival;
-			newEntry->NumberVal = (Number)ival;				
+			newEntry->NumberVal = (Number)ival;
 			newEntry->type = ObjectEntry::INT_ENTRY;
+		} else if (pAttrib->QueryDoubleValue(&dval)==TIXML_SUCCESS) {
+			newEntry->NumberVal = dval;
+			newEntry->intVal = dval;
+			newEntry->type = ObjectEntry::FLOAT_ENTRY;
 		}
 		
 		if(newEntry->stringVal == "true") {
@@ -236,12 +239,17 @@ void Object::createFromXMLElement(TiXmlElement *element, ObjectEntry *entry) {
 		
 		const char *rawVal = entry->stringVal.c_str();
 		char *endResult = NULL; const char *success = rawVal + entry->stringVal.size();
-		entry->NumberVal = strtof(rawVal, &endResult);
-		if (endResult == success)
-			entry->type = ObjectEntry::FLOAT_ENTRY;
-		entry->intVal = strtod(rawVal, &endResult);
-		if (endResult == success)
+		entry->intVal = strtol(rawVal, &endResult, 10);
+		if (endResult == success) { // If integer part exhausts string
 			entry->type = ObjectEntry::INT_ENTRY;
+			entry->NumberVal = entry->intVal;
+		} else {
+			entry->NumberVal = strtof(rawVal, &endResult);
+			entry->intVal = entry->NumberVal;
+			if (endResult == success) {
+				entry->type = ObjectEntry::FLOAT_ENTRY;
+			}
+		}
 		
 		if(entry->stringVal == "true") {
 			entry->boolVal = true;
@@ -258,13 +266,13 @@ void Object::createFromXMLElement(TiXmlElement *element, ObjectEntry *entry) {
 		String lastName = "";
 		int count = 0;
 		for (pChild = element->FirstChild(); pChild != 0; pChild = pChild->NextSibling()) {
-			ObjectEntry *newEntry = new ObjectEntry();		
+			ObjectEntry *newEntry = new ObjectEntry();
 			createFromXMLElement(pChild->ToElement(), newEntry);
 			entry->children.push_back(newEntry);		
-			if(entry->name == lastName) {
+			if(newEntry->name == lastName) { // Keys cannot repeat in a CONTAINER
 				entry->type = ObjectEntry::ARRAY_ENTRY;
 			}
-			lastName = entry->name;			
+			lastName = newEntry->name;			
 			count++;
 		}
 		
