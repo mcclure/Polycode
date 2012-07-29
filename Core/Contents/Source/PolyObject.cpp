@@ -92,8 +92,7 @@ void Object::saveToXML(const String& fileName) {
 
 
 TiXmlElement *Object::createElementFromObjectEntry(ObjectEntry *entry) {
-	const String &typedName = entry->getTypedName();
-	TiXmlElement *newElement = new TiXmlElement(typedName.c_str());
+	TiXmlElement *newElement = new TiXmlElement(entry->getTypedName().c_str());
 	
 	switch(entry->type) {
 		case ObjectEntry::BOOL_ENTRY: {
@@ -128,7 +127,7 @@ TiXmlElement *Object::createElementFromObjectEntry(ObjectEntry *entry) {
 						break;
 						case ObjectEntry::FLOAT_ENTRY: {
 							std::ostringstream o; // Avoid NumberToString, it truncates
-							o << entry->NumberVal;
+							o << childEntry->NumberVal;
 							newElement->SetAttribute(childTypedName.c_str(), o.str().c_str());
 						} break;
 						case ObjectEntry::INT_ENTRY:				
@@ -147,7 +146,7 @@ TiXmlElement *Object::createElementFromObjectEntry(ObjectEntry *entry) {
 				}
 				
 				if (needLinkChild) {
-					TiXmlElement *childElement = createElementFromObjectEntry(entry->children[i]);
+					TiXmlElement *childElement = createElementFromObjectEntry(childEntry);
 					newElement->LinkEndChild(childElement);
 				}
 			}
@@ -235,13 +234,14 @@ void Object::createFromXMLElement(TiXmlElement *element, ObjectEntry *entry) {
 		entry->stringVal = element->GetText();
 		entry->type = ObjectEntry::STRING_ENTRY;
 		
-		const char *rawVal = entry->stringVal.c_str(); char *invalid = NULL;
-		entry->intVal = strtod(rawVal, &invalid);
-		if (rawVal != invalid)
-			entry->type = ObjectEntry::INT_ENTRY;
-		entry->NumberVal = strtof(rawVal, &invalid);
-		if (rawVal != invalid)
+		const char *rawVal = entry->stringVal.c_str();
+		char *endResult = NULL; const char *success = rawVal + entry->stringVal.size();
+		entry->NumberVal = strtof(rawVal, &endResult);
+		if (endResult == success)
 			entry->type = ObjectEntry::FLOAT_ENTRY;
+		entry->intVal = strtod(rawVal, &endResult);
+		if (endResult == success)
+			entry->type = ObjectEntry::INT_ENTRY;
 		
 		if(entry->stringVal == "true") {
 			entry->boolVal = true;
