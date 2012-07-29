@@ -118,7 +118,7 @@ TiXmlElement *Object::createElementFromObjectEntry(ObjectEntry *entry) {
 		//		printf("Parsing %s (type: %d)\n", childEntry->name.c_str(), childEntry->type);
 				
 				if (!needLinkChild) {
-					const String &childTypedName = entry->getTypedName();
+					const String &childTypedName = childEntry->getTypedName();
 					switch(childEntry->type) {
 						case ObjectEntry::BOOL_ENTRY:
 							if(childEntry->boolVal)
