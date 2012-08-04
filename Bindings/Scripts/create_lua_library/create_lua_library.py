@@ -14,18 +14,23 @@ def mkdir_p(path): # Same effect as mkdir -p, create dir and all necessary paren
 		if e.errno == errno.EEXIST: # Dir already exists; not really an error
 			pass
 		else: raise
-		
+
+# Note we expect className to be a valid string
 def template_returnPtrLookup(prefix, className, ptr):
 	out = ""
-	out += "%sif __ptr_lookup.%s[%s] ~= nil then\n" % (prefix, className, ptr)
-	out += "%s\treturn __ptr_lookup.%s[%s]\n" % (prefix, className, ptr)
+	out += "%sif __ptr_lookup[%s][%s] ~= nil then\n" % (prefix, className, ptr)
+	out += "%s\treturn __ptr_lookup[%s][%s]\n" % (prefix, className, ptr)
 	out += "%selse\n" % (prefix)
-	out += "%s\t__ptr_lookup.%s[%s] = %s(\"__skip_ptr__\")\n" % (prefix, className, ptr, className)
-	out += "%s\t__ptr_lookup.%s[%s].__ptr = %s\n" % (prefix, className, ptr, ptr)
-	out += "%s\treturn __ptr_lookup.%s[%s]\n" % (prefix, className, ptr)
+	out += "%s\t__ptr_lookup[%s][%s] = _G[%s](\"__skip_ptr__\")\n" % (prefix, className, ptr, className)
+	out += "%s\t__ptr_lookup[%s][%s].__ptr = %s\n" % (prefix, className, ptr, ptr)
+	out += "%s\treturn __ptr_lookup[%s][%s]\n" % (prefix, className, ptr)
 	out += "%send\n" % (prefix)
 	return out
+	
+def template_quote(str):
+	return "\"%s\"" % str;
 
+# FIXME: Some "unsigned int *" functions are still being generated on the polycode API?
 def typeFilter(ty):
 	ty = ty.replace("Polycode::", "")
 	ty = ty.replace("std::", "")
@@ -199,7 +204,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						# If type is a class
 						else:
 							luaClassBindingOut += "\t\tretVal = %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
-							luaClassBindingOut += template_returnPtrLookup("\t\t", pp["type"], "retVal")
+							luaClassBindingOut += template_returnPtrLookup("\t\t", template_quote(pp["type"]), "retVal")
 
 						# Generate C++ side of binding:
 						if not ((ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter") and pp["name"] == "emitter"): #SPEC
@@ -502,7 +507,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							else: # Yes, a pointer was returned
 								className = pm["rtnType"].replace("const", "").replace("&", "").replace("inline", "").replace("virtual", "").replace("static", "").replace("*","").replace(" ", "")
 								luaClassBindingOut += "\tif retVal == nil then return nil end\n"
-								luaClassBindingOut += template_returnPtrLookup("\t",className,"retVal")
+								luaClassBindingOut += template_returnPtrLookup("\t",template_quote(className),"retVal")
 						luaClassBindingOut += "end\n\n" # Close out Lua generation
 
 					parsed_methods.append(pm["name"]) # Method parse success
@@ -533,7 +538,12 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					luaClassBindingOut += "\tevt.__ptr = event\n"
 					luaClassBindingOut += "\tself:handleEvent(evt)\n"
 					#luaClassBindingOut += "\tself:handleEvent(event)\n"
-					luaClassBindingOut += "end\n"
+					luaClassBindingOut += "end\n\n"
+					
+					# Let's use this opportunity to put in some other "generated" utility functions.
+					luaClassBindingOut += "function __ptrToTable(className, ptr)\n"
+					luaClassBindingOut += template_returnPtrLookup("\t","className","ptr")
+					luaClassBindingOut += "end\n\n"
 					
 				# Add class to lua index file
 				luaIndexOut += "require \"%s/%s\"\n" % (prefix, ckey)
