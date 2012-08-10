@@ -41,7 +41,7 @@ long getThreadID() {
 	return (long)pthread_self();
 }
 
-SDLCore::SDLCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate) : Core(_xRes, _yRes, fullScreen, vSync, aaLevel, anisotropyLevel, frameRate) {
+SDLCore::SDLCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex) : Core(_xRes, _yRes, fullScreen, vSync, aaLevel, anisotropyLevel, frameRate, monitorIndex) {
 
 	String *windowTitle = (String*)view->windowData;
 
@@ -190,6 +190,10 @@ bool SDLCore::Update() {
 
 void SDLCore::setCursor(int cursorType) {
 
+}
+
+void SDLCore::warpCursor(int x, int y) {
+	SDL_WarpMouse(x, y);
 }
 
 void SDLCore::lockMutex(CoreMutex *mutex) {

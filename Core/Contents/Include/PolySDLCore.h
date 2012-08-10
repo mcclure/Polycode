@@ -41,7 +41,7 @@ namespace Polycode {
 		
 	public:
 		
-		SDLCore(PolycodeView *view, int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate);
+		SDLCore(PolycodeView *view, int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex);
 		~SDLCore();
 
 		void enableMouse(bool newval);
@@ -52,6 +52,7 @@ namespace Polycode {
 		std::vector<Rectangle> getVideoModes();
 		
 		void setCursor(int cursorType);
+		void warpCursor(int x, int y);
 		void lockMutex(CoreMutex *mutex);
 		void unlockMutex(CoreMutex *mutex);
 		CoreMutex *createMutex();
