@@ -18,6 +18,6 @@ ENDIF(FREENECT_FOUND)
 ADD_SUBDIRECTORY(UI)
 ADD_SUBDIRECTORY(Networking)
 
-IF(APPLE OR WIN32) # In other words: Not mingw, not linux.
+IF(APPLE OR MSVC) # In other words: Not mingw, not linux.
 ADD_SUBDIRECTORY(TUIO)
-ENDIF(APPLE OR WIN32)
+ENDIF(APPLE OR MSVC)
