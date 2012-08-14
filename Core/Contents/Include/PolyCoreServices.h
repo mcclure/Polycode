@@ -146,6 +146,8 @@ namespace Polycode {
 			* @see Config
 			*/																													
 			Config *getConfig();
+			
+			bool drawScreensFirst;
 		
 			/**
 			 * Provides the current width, height, and refresh rate of the screen.
@@ -162,6 +164,7 @@ namespace Polycode {
 			CoreServices();
 					
 		private:
+		
 		
 			static CoreServices* overrideInstance;
 			static std::map <long, CoreServices*> instanceMap;

@@ -38,7 +38,7 @@ namespace Polycode {
 		virtual ~SoundManager();
 		
 		void setListenerPosition(Vector3 position);
-		void setListenerOrientation(Vector3 orientation);	
+		void setListenerOrientation(Vector3 orientation, Vector3 upVector);	
 		void initAL();
 		
 		/**
