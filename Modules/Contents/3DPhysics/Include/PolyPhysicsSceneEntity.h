@@ -51,6 +51,8 @@ namespace Polycode {
 		void setFriction(Number friction);		
 		int getType() { return type; }	
 		
+		void setMass(Number mass);
+		
 			void setVelocity(Vector3 velocity);
 			void warpTo(Vector3 position, bool resetRotation);
 			
