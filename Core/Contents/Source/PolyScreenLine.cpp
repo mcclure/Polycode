@@ -32,11 +32,10 @@ ScreenLine::ScreenLine(Vector2* start, Vector2* end) : ScreenMesh(Mesh::LINE_MES
 	target1 = NULL;
 	initMesh();
 		
-	setPosition(start->x, start->y);
-	startVertex->x = 0;
-	startVertex->y = 0;
-	endVertex->x = end->x - start->x;
-	endVertex->y = end->y - start->y;
+	startVertex->x = start->x;
+	startVertex->y = start->y;
+	endVertex->x = end->x;
+	endVertex->y = end->y;
 	lineWidth = 1.0f;
 	mesh->arrayDirtyMap[RenderDataArray::VERTEX_DATA_ARRAY] = true;	
 }
