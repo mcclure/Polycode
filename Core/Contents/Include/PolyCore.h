@@ -308,9 +308,14 @@ namespace Polycode {
 		/**
 		* Returns the default working path of the application.
 		*/
-		String getUserHomeDirectory();		
+		String getUserHomeDirectory();	
 		
-	protected:
+		CoreMutex *getEventMutex();
+		CoreMutex *eventMutex;
+		
+		void removeThread(Threaded *thread);
+				
+	protected:	
 		
 		String userHomeDirectory;
 		String defaultWorkingDirectory;

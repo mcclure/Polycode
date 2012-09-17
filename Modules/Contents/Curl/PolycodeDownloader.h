@@ -8,15 +8,21 @@ using namespace Polycode;
 class PolycodeDownloader : public Threaded {
 	public:
 		PolycodeDownloader(String url);
-		~PolycodeDownloader();		
+		virtual ~PolycodeDownloader();		
 		
 		void runThread();
 		
 		String getDataAsString();
 		
+		bool writeToFile(String fileName);
+		
 		char *data;
 		size_t size;
-				
+		
+		bool returned;
+		
+		void *userData;
+		
 	protected:
 		String url;		
 		CURL *curl;
