@@ -26,8 +26,6 @@
 #include "PolyCoreServices.h"
 #include "PolyRenderer.h"
 
-#define FRAMEBUFFER_NULL 999999
-
 using namespace Polycode;
 
 #ifdef _WINDOWS
@@ -131,7 +129,7 @@ OpenGLTexture::~OpenGLTexture() {
 	glDeleteTextures(1, &textureID);
 	if(frameBufferID != FRAMEBUFFER_NULL) {
 		glDeleteFramebuffersEXT(1, &frameBufferID);
-	}
+	}	
 }
 
 GLuint OpenGLTexture::getFrameBufferID() {
