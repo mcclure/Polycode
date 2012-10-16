@@ -24,12 +24,24 @@
 #include "Polycode.h"
 #include "PolycodeProjectBrowser.h"
 #include "PolycodeEditor.h"
+#include "PolycodeConsole.h"
 #include "NewProjectWindow.h"
 #include "ExampleBrowserWindow.h"
 #include "NewFileWindow.h"
 #include "ToolWindows.h"
 
 using namespace Polycode;
+
+class EditorHolder : public UIElement {
+	public:
+		EditorHolder();
+		~EditorHolder();
+		
+		void Resize(Number width, Number height);
+		
+		PolycodeEditor *currentEditor;
+		
+};
 
 class PolycodeFrame : public ScreenEntity {
 public:
@@ -59,7 +71,10 @@ public:
 	PolycodeProjectBrowser *projectBrowser;
 		
 	UIImageButton *playButton;
-			
+	UIHSizer *mainSizer;	
+	
+	PolycodeConsole *console;
+						
 private:
 	
 	int frameSizeX;
@@ -76,13 +91,16 @@ private:
 	
 	ScreenImage *welcomeImage;	
 	
-	ScreenEntity *editorHolder;
 	
-	PolycodeEditor *currentEditor;
+	EditorHolder *editorHolder;
+	
+
 	vector<PolycodeEditor*> editors;
 	
 	ScreenShape *modalBlocker;
 	UIWindow *modalChild;		
+	
+	UIVSizer *consoleSizer;
 	
 	UIButton *newProjectButton;
 	UIButton *examplesButton;

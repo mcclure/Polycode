@@ -27,13 +27,14 @@
 #include "PolyScreenEntity.h"
 #include "PolyUIEvent.h"
 #include "PolyUIBox.h"
+#include "PolyUIElement.h"
 
 namespace Polycode {
 
-	class _PolyExport UIButton : public ScreenEntity {
+	class _PolyExport UIButton : public UIElement {
 		public:
-			UIButton(String text, Number width, Number height = 26);
-			virtual ~UIButton();		
+			UIButton(String text, Number width, Number height = 28);
+			~UIButton();		
 			void handleEvent(Event *event);
 			
 			void Update();

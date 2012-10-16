@@ -25,6 +25,15 @@
 
 PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
 
+	grid = new ScreenImage("editorGrid.png");
+	
+	addChild(grid);
+	grid->snapToPixels = true;
+	
+	grid->getTexture()->clamp = false;
+	grid->getTexture()->recreateFromImageData();	
+	
+
 	Config *conf = CoreServices::getInstance()->getConfig();	
 	String fontName = conf->getStringValue("Polycode", "uiDefaultFontName");
 	int fontSize = conf->getNumericValue("Polycode", "uiDefaultFontSize");	
@@ -235,6 +244,7 @@ bool PolycodeProjectEditor::openFile(String filePath) {
 }
 
 void PolycodeProjectEditor::Resize(int x, int y) {
+	grid->setImageCoordinates(0,0,x,y);	
 }
 
 void PolycodeProjectEditor::saveFile() {
@@ -250,9 +260,17 @@ void PolycodeProjectEditor::saveFile() {
 	(*color)["blue"]->NumberVal = bgColorBox->getSelectedColor().b;
 
 
-	configFile.root["modules"]->Clear();
+	if(configFile.root["modules"]) {
+		configFile.root["modules"]->Clear();
+	}
+	
 	for(int j=0; j < moduleCheckboxes.size(); j++) {
 		if(moduleCheckboxes[j]->isChecked()) {
+			
+			if(!configFile.root["modules"]) {
+				configFile.root.addChild("modules");	
+			}
+		
 			configFile.root["modules"]->addChild("module", moduleCheckboxes[j]->getCaptionLabel());
 		}
 	}

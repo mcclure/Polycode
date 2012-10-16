@@ -30,7 +30,7 @@ THE SOFTWARE.
 #define MAX_PACKET_SIZE 400
 
 // if set to 1, will create a thread for each network socket
-#define USE_THREADED_SOCKETS 1
+#define USE_THREADED_SOCKETS 0
 
 // Socket poll interval time in msecs
 #define SOCKET_POLL_INTERVAL 5
@@ -64,7 +64,7 @@ namespace Polycode {
 		Address(String ipAsString, unsigned int port);
 		Address(unsigned int ip, unsigned int port);
 		Address();
-		virtual ~Address();
+		~Address();
 		
 		inline void operator = (const Address &add2) {
 			setAddress(add2.uintAddress, add2.port);
@@ -87,7 +87,7 @@ namespace Polycode {
 	class _PolyExport SocketEvent : public Event {
 	public:
 		SocketEvent(){}
-		virtual ~SocketEvent(){}
+		~SocketEvent(){}
 		
 		char data[MAX_PACKET_SIZE];
 		unsigned int dataSize;
@@ -101,7 +101,7 @@ namespace Polycode {
 	class _PolyExport Socket : public EventDispatcher {
 		public:
 			Socket(int port);
-			virtual ~Socket();
+			~Socket();
 
 			int receiveData();		
 			bool sendData(const Address &address, char *data, unsigned int packetSize);

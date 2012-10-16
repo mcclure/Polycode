@@ -36,6 +36,9 @@
 #include <GL/wglext.h>
 #endif
 
+PFNWGLSWAPINTERVALEXTPROC       wglSwapIntervalEXT = NULL;
+PFNWGLGETSWAPINTERVALEXTPROC    wglGetSwapIntervalEXT = NULL;
+
 using namespace Polycode;
 
 long getThreadID() {
@@ -100,6 +103,11 @@ Win32Core::Win32Core(PolycodeViewBase *view, int _xRes, int _yRes, bool fullScre
 
 	((OpenGLRenderer*)renderer)->initOSSpecific();
 
+	wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
+	wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC) wglGetProcAddress("wglGetSwapIntervalEXT");
+	
+	setVSync(vSync);
+
 	CoreServices::getInstance()->installModule(new GLSLShaderModule());	
 }
 
@@ -142,6 +150,16 @@ bool Win32Core::Update() {
 	return running;
 }
 
+void Win32Core::setVSync(bool vSyncVal) {
+	if(wglSwapIntervalEXT) {
+		if(vSyncVal) {
+			wglSwapIntervalEXT(1);
+		} else {
+			wglSwapIntervalEXT(0);
+		}
+	}
+}
+
 void Win32Core::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel) {
 
 	if(fullScreen) {
@@ -176,6 +194,8 @@ void Win32Core::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, in
 	if(aaLevel > 0) {
 		initMultisample(aaLevel);
 	}
+
+	setVSync(vSync);
 
 	renderer->Resize(xRes, yRes);
 }
@@ -494,18 +514,21 @@ void Win32Core::handleTouchEvent(LPARAM lParam, WPARAM wParam) {
 						newEvent.eventGroup = Win32Event::INPUT_EVENT;
 						newEvent.eventCode = InputEvent::EVENT_TOUCHES_ENDED;
 						newEvent.touches = touches;
+						newEvent.touch = touches[i];
 						win32Events.push_back(newEvent);	
 					} else if(ti.dwFlags & TOUCHEVENTF_MOVE) {
 						Win32Event newEvent;
 						newEvent.eventGroup = Win32Event::INPUT_EVENT;
 						newEvent.eventCode = InputEvent::EVENT_TOUCHES_MOVED;
 						newEvent.touches = touches;
+						newEvent.touch = touches[i];
 						win32Events.push_back(newEvent);
 					} else if(ti.dwFlags & TOUCHEVENTF_DOWN) {
 						Win32Event newEvent;
 						newEvent.eventGroup = Win32Event::INPUT_EVENT;
 						newEvent.eventCode = InputEvent::EVENT_TOUCHES_BEGAN;
 						newEvent.touches = touches;
+						newEvent.touch = touches[i];
 						win32Events.push_back(newEvent);
 					}
 			  }
@@ -573,13 +596,13 @@ void Win32Core::checkEvents() {
 			case Win32Event::INPUT_EVENT:
 				switch(event.eventCode) {
 					case InputEvent::EVENT_TOUCHES_BEGAN:
-						input->touchesBegan(event.touches, getTicks());
+						input->touchesBegan(event.touch, event.touches, getTicks());
 					break;
 					case InputEvent::EVENT_TOUCHES_ENDED:
-						input->touchesEnded(event.touches, getTicks());
+						input->touchesEnded(event.touch, event.touches, getTicks());
 					break;
 					case InputEvent::EVENT_TOUCHES_MOVED:
-						input->touchesMoved(event.touches, getTicks());
+						input->touchesMoved(event.touch, event.touches, getTicks());
 					break;
 					case InputEvent::EVENT_MOUSEMOVE:
 						input->setDeltaPosition(event.mouseX - lastMouseX , event.mouseY - lastMouseY);										
@@ -839,11 +862,15 @@ void Win32Core::initTouch() {
 	// Check for windows multitouch support at runtime
 	// This could be done easily during preprocessing but would require building
 	// multiple releases of polycode for both winxp/vista and win7
-	GetTouchInputInfoFunc = (GetTouchInputInfoType) GetProcAddress(GetModuleHandle(TEXT("user32.lib")), "GetTouchInputInfo");
+	GetTouchInputInfoFunc = (GetTouchInputInfoType) GetProcAddress(GetModuleHandle(TEXT("user32")), "GetTouchInputInfo");
 	
 	// If the above multitouch functions were found, then set a flag so we don't
 	// have to check again later
 	hasMultiTouch = ( GetTouchInputInfoFunc == NULL ) ? false : true;
+
+	if(hasMultiTouch) {
+			RegisterTouchWindow(hWnd, 0);
+	}
 #endif
 }
 

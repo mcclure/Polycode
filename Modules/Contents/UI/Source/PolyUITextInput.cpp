@@ -30,7 +30,7 @@
 
 using namespace Polycode;
 
-UITextInput::UITextInput(bool multiLine, Number width, Number height) : ScreenEntity() {
+UITextInput::UITextInput(bool multiLine, Number width, Number height) : UIElement() {
 	this->multiLine = multiLine;
 	
 	isNumberOnly = false;
@@ -66,6 +66,8 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : ScreenEn
 		rectHeight = fontSize+12;
 	} 
 	
+	linesContainer = new ScreenEntity();	
+	
 	lineSpacing = conf->getNumericValue("Polycode", "textEditLineSpacing");
 	
 	Number st = conf->getNumericValue("Polycode", "textBgSkinT");
@@ -81,6 +83,7 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : ScreenEn
 	
 	addChild(inputRect);
 	
+
 	
 	
 	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEDOWN);
@@ -96,26 +99,25 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : ScreenEn
 	selectorRectTop->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
 	selectorRectTop->setColor(181.0f/255.0f, 213.0f/255.0f, 255.0f/255.0f, 1);
 	selectorRectTop->visible = false;
-	addChild(selectorRectTop);
+	linesContainer->addChild(selectorRectTop);
 
 	selectorRectMiddle = new ScreenShape(ScreenShape::SHAPE_RECT, 1,1);
 	selectorRectMiddle->setPositionMode(ScreenEntity::POSITION_TOPLEFT);	
 	selectorRectMiddle->setColor(181.0f/255.0f, 213.0f/255.0f, 255.0f/255.0f, 1);
 	selectorRectMiddle->visible = false;
-	addChild(selectorRectMiddle);
+	linesContainer->addChild(selectorRectMiddle);
 
 	selectorRectBottom = new ScreenShape(ScreenShape::SHAPE_RECT, 1,1);
 	selectorRectBottom->setPositionMode(ScreenEntity::POSITION_TOPLEFT);	
 	selectorRectBottom->setColor(181.0f/255.0f, 213.0f/255.0f, 255.0f/255.0f, 1);
 	selectorRectBottom->visible = false;
-	addChild(selectorRectBottom);
+	linesContainer->addChild(selectorRectBottom);
 		
-	insertLine(true);	
 	
 	blinkerRect = new ScreenShape(ScreenShape::SHAPE_RECT, 1, fontSize+4,0,0);
 	blinkerRect->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
 	blinkerRect->setColor(0,0,0,1);
-	addChild(blinkerRect);
+	linesContainer->addChild(blinkerRect);
 	blinkerRect->visible = false;
 	blinkerRect->setPosition(0,3);
 	
@@ -128,6 +130,21 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : ScreenEn
 	setHitbox(width, rectHeight);
 	
 	updateCaretPosition();
+		
+	
+	scrollContainer = NULL;
+	
+	if(multiLine) {
+		scrollContainer = new UIScrollContainer(linesContainer, false, true, 200, 200);
+		addChild(scrollContainer);
+	} else {
+		addChild(linesContainer);
+	}
+	
+	undoStateIndex = 0;
+	maxRedoIndex = 0;
+	
+	insertLine(true);		
 }
 
 void UITextInput::setNumberOnly(bool val) {
@@ -155,9 +172,8 @@ void UITextInput::setSelection(int lineStart, int lineEnd, int colStart, int col
 	} else {
 		selectionCaretPosition = colStart;
 	}
-
 	
-//	Logger::log("SET lineStart:%d lineEnd:%d colStart:%d colEnd:%d\n", lineStart, lineEnd, colStart, colEnd);
+	//printf("SET lineStart:%d lineEnd:%d colStart:%d colEnd:%d\n", lineStart, lineEnd, colStart, colEnd);
 	
 	if(lineStart > lineEnd) {
 		int tmp = lineStart;
@@ -177,14 +193,17 @@ void UITextInput::setSelection(int lineStart, int lineEnd, int colStart, int col
 	
 	clearSelection();
 	
+
+	
 	if(lineStart > lines.size()-1)
 		return;	
-	
+
 	ScreenLabel *topLine = lines[lineStart];	
 	
-	if(colStart+1 > topLine->getText().length())
-		return;
-	
+	if(colStart+1 > topLine->getText().length()) {
+		colStart = topLine->getText().length();
+	}
+		
 	Number fColEnd  = colEnd;
 	
 	if(colEnd > topLine->getText().length() || lineStart != lineEnd)
@@ -208,6 +227,8 @@ void UITextInput::setSelection(int lineStart, int lineEnd, int colStart, int col
 		ScreenLabel *bottomLine = lines[lineEnd];	
 		selectorRectBottom->visible = true;		
 		Number bottomSize = bottomLine->getLabel()->getTextWidth(CoreServices::getInstance()->getFontManager()->getFontByName(fontName), bottomLine->getText().substr(0,colEnd), fontSize) - 4; 
+		if(bottomSize < 0)
+			bottomSize = this->width-padding;
 		Number bottomHeight = lineHeight+lineSpacing;
 		selectorRectBottom->setScale(bottomSize, bottomHeight);
 		selectorRectBottom->setPosition(padding + (bottomSize/2.0) + 1, padding + (lineEnd * (lineHeight+lineSpacing)) + (bottomHeight/2.0));
@@ -285,12 +306,16 @@ void UITextInput::deleteSelection() {
 	dispatchEvent(new UIEvent(), UIEvent::CHANGE_EVENT);	
 }
 
-void UITextInput::Resize(int x, int y) {
-	inputRect->resizeBox(x, y);
-	this->width = x;
-	this->height = y;	
+void UITextInput::Resize(Number width, Number height) {
+	inputRect->resizeBox(width, height);
+	this->width = width;
+	this->height = height;	
 	matrixDirty = true;	
-	setHitbox(x,y);
+	setHitbox(width,height);
+
+	if(scrollContainer) {
+		scrollContainer->Resize(width, height);
+	}
 }
 
 int UITextInput::insertLine(bool after) {
@@ -300,7 +325,7 @@ int UITextInput::insertLine(bool after) {
 	ScreenLabel *newLine = new ScreenLabel(L"", fontSize, fontName, Label::ANTIALIAS_FULL);
 	newLine->setColor(0,0,0,1);
 	lineHeight = newLine->getHeight();
-	addChild(newLine);
+	linesContainer->addChild(newLine);
 	
 	if(after) {	
 		
@@ -329,7 +354,7 @@ int UITextInput::insertLine(bool after) {
 	} else {	
 		// do we even need that? I don't think so.
 	}	
-	
+		
 	dispatchEvent(new UIEvent(), UIEvent::CHANGE_EVENT);
 	return 1;	
 }
@@ -338,6 +363,11 @@ void UITextInput::restructLines() {
 	for(int i=0; i < lines.size(); i++) {
 		lines[i]->setPosition(padding,padding + (i*(lineHeight+lineSpacing)) ,0.0f);		
 	}
+	
+	if(scrollContainer) {
+		scrollContainer->setContentSize(width,  (((lines.size()+1) * ((lineHeight+lineSpacing)))) - padding);
+	}	
+	
 }
 
 void UITextInput::setText(String text) {
@@ -347,6 +377,9 @@ void UITextInput::setText(String text) {
 		clearSelection();				
 		updateCaretPosition();		
 	} else {
+		selectAll();
+		insertText(text);
+		clearSelection();
 	}
 		
 //	this->text = text;
@@ -411,7 +444,7 @@ void UITextInput::dragSelectionTo(Number x, Number y) {
 	int lineOffset = y  / (lineHeight+lineSpacing);
 	if(lineOffset > lines.size()-1)
 		lineOffset = lines.size()-1;
-
+	
 	ScreenLabel *selectToLine = lines[lineOffset];
 	
 	int len = selectToLine->getText().length();
@@ -515,8 +548,8 @@ void UITextInput::removeLine(ScreenLabel *line) {
 			lines.erase(lines.begin()+i);
 		}
 	}
-	removeChild(line);
-	delete line;
+	linesContainer->removeChild(line);
+	linesToDelete.push_back(line);
 	restructLines();
 }
 
@@ -524,21 +557,43 @@ void UITextInput::selectAll() {
 	setSelection(0, lines.size()-1, 0, lines[lines.size()-1]->getText().length());
 }
 
-void UITextInput::insertText(String text) {
+void UITextInput::insertText(String text) {	
 	vector<String> strings = text.split("\n");
-	int numLines = lines.size();
-	for(int i=0; i < strings.size(); i++) {
-		if(i < numLines) {
-			lines[i]->setText(strings[i]);
-		} else {
-			numLines++;		
-			ScreenLabel *newLine = new ScreenLabel(L"", fontSize, fontName, Label::ANTIALIAS_FULL);
-			newLine->setColor(0,0,0,1);
-			addChild(newLine);			
-			lines.push_back(newLine);
-			newLine->setText(strings[i]);
+
+	if(hasSelection)
+		deleteSelection();
+
+	if(strings.size() > 1) {
+		String ctext = currentLine->getText();		
+		String text2 = ctext.substr(caretPosition, ctext.length()-caretPosition);
+		ctext = ctext.substr(0,caretPosition);
+		ctext += strings[0];
+		currentLine->setText(ctext);		
+		caretPosition = ctext.length();
+		
+		for(int i=1; i < strings.size()-1; i++) {
+			insertLine(true);
+			ctext = strings[i];
+			currentLine->setText(ctext);
+			caretPosition = ctext.length();			
 		}
+		
+		insertLine(true);
+		ctext = strings[strings.size()-1] + text2;
+		caretPosition = ctext.length();
+		currentLine->setText(ctext);		
+		
+	} else {
+		String ctext = currentLine->getText();		
+		String text2 = ctext.substr(caretPosition, ctext.length()-caretPosition);
+		ctext = ctext.substr(0,caretPosition);
+		ctext += text + text2;
+		caretPosition += text.length();
+		currentLine->setText(ctext);			
 	}
+	
+	dispatchEvent(new UIEvent(), UIEvent::CHANGE_EVENT);	
+	updateCaretPosition();		
 	restructLines();	
 }
 
@@ -564,12 +619,87 @@ String UITextInput::getSelectionText() {
 	return totalText;
 }
 
+UIScrollContainer *UITextInput::getScrollContainer() {
+	return scrollContainer;
+}
+
+void UITextInput::saveUndoState() {
+	UITextInputUndoState newState;
+	newState.content = getText();
+	newState.caretPosition = caretPosition;
+	newState.lineOffset = lineOffset;
+	newState.hasSelection = hasSelection;
+	if(hasSelection) {
+		newState.selectionLine = selectionLine;
+		newState.selectionCaretPosition = selectionCaretPosition;
+	}
+	undoStates[undoStateIndex] = newState;
+	
+	// if we hit undo state capacity, shift the whole stack
+	if(undoStateIndex == MAX_TEXTINPUT_UNDO_STATES-1) {
+		for(int i=0; i < MAX_TEXTINPUT_UNDO_STATES-1; i++) {
+			undoStates[i] = undoStates[i+1];
+		}
+	} else {
+		undoStateIndex++;
+	}
+	
+	maxRedoIndex = undoStateIndex;
+}
+
+void UITextInput::setUndoState(UITextInputUndoState state) {
+	clearSelection();
+	setText(state.content);
+	currentLine = lines[state.lineOffset];
+	caretPosition = state.caretPosition;
+	lineOffset = state.lineOffset;
+	updateCaretPosition();
+	
+	if(state.hasSelection) {
+		setSelection(lineOffset, state.selectionLine, caretPosition, state.selectionCaretPosition);
+	}
+}
+
+void UITextInput::Undo() {
+	if(undoStateIndex > 0) {
+		undoStateIndex--;
+		setUndoState(undoStates[undoStateIndex]);
+	}
+}
+
+void UITextInput::Redo() {
+	if(undoStateIndex < MAX_TEXTINPUT_UNDO_STATES-1 && undoStateIndex < maxRedoIndex) {
+		undoStateIndex++;
+		setUndoState(undoStates[undoStateIndex]);
+	}
+}
+
+void UITextInput::Cut() {
+	saveUndoState();
+	Copy();
+	if(hasSelection) {
+		deleteSelection();
+	}	
+}
+
+void UITextInput::Copy() {
+	CoreServices::getInstance()->getCore()->copyStringToClipboard(getSelectionText());	
+}
+
+void UITextInput::Paste() {
+	saveUndoState();
+	insertText(CoreServices::getInstance()->getCore()->getClipboardString());
+}
+
+void UITextInput::showLine(unsigned int lineNumber, bool top) {
+	
+}
+
 void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	
 	if(!hasFocus)
 		return;
-	
-	
+		
 //	Logger::log("UCHAR: %d\n", charCode);	
 	
 	CoreInput *input = CoreServices::getInstance()->getCore()->getInput();	
@@ -580,16 +710,33 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	}
 
 	if(key == KEY_c && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		CoreServices::getInstance()->getCore()->copyStringToClipboard(getSelectionText());
+		Copy();
 		return;
 	}
 
 	if(key == KEY_x && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
+		Cut();
+		return;
+	}
+	
+	if(key == KEY_z  && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
+		Undo();
+		return;
+	}
+
+	if(key == KEY_z  && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER)) && (input->getKeyState(KEY_LSHIFT) || input->getKeyState(KEY_RSHIFT))) {
+		Redo();
+		return;
+	}
+
+
+	if(key == KEY_y  && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
+		Redo();
 		return;
 	}
 
 	if(key == KEY_v && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		insertText(CoreServices::getInstance()->getCore()->getClipboardString());
+		Paste();
 		return;
 	}	
 	
@@ -727,11 +874,15 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	
 	
 	if(key == KEY_RETURN) {
-		if(hasSelection)
-			deleteSelection();		
-		if(multiLine) {
+		if(multiLine) {	
+			saveUndoState();
+			if(hasSelection) {
+				deleteSelection();		
+			}			
 			insertLine(true);
 			updateCaretPosition();
+		} else {
+			dispatchEvent(new Event(), Event::COMPLETE_EVENT);
 		}
 		return;
 	}	
@@ -742,6 +893,7 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 //	if(1) {
 	if((charCode > 31 && charCode < 127) || charCode > 127) {	
 		if(!isNumberOnly || (isNumberOnly && (charCode > 47 && charCode < 58))) {
+			saveUndoState();
 			if(hasSelection)
 				deleteSelection();
 			ctext = currentLine->getText();		
@@ -753,6 +905,7 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	}
 	
 	if(key == KEY_TAB && multiLine) {
+		saveUndoState();
 		if(hasSelection)
 			deleteSelection();		
 		ctext = currentLine->getText();				
@@ -764,11 +917,13 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	
 	if(key == KEY_BACKSPACE) {
 		if(hasSelection) {
+			saveUndoState();
 			deleteSelection();
 			return;
 		} else {
 		ctext = currentLine->getText();					
 		if(caretPosition > 0) {
+			saveUndoState();
 			if(ctext.length() > 0) {
 				String text2 = ctext.substr(caretPosition, ctext.length()-caretPosition);
 				ctext = ctext.substr(0,caretPosition-1);
@@ -777,6 +932,7 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 			}
 		} else {
 			if(lineOffset > 0) {
+				saveUndoState();			
 				ScreenLabel *lineToRemove = currentLine;
 				lineOffset--;
 				selectLineFromOffset();
@@ -807,6 +963,10 @@ void UITextInput::Update() {
 //		inputRect->setStrokeColor(1.0f, 1.0f, 1.0f, 0.1f);
 	}
 	
+	for(int i=0; i < linesToDelete.size(); i++) {
+		delete linesToDelete[i];
+	}
+	linesToDelete.clear();
 }
 
 UITextInput::~UITextInput() {
@@ -822,7 +982,7 @@ void UITextInput::handleEvent(Event *event) {
 				} else {
 					hasFocus = true;
 				}
-				setCaretToMouse(((InputEvent*)event)->mousePosition.x, ((InputEvent*)event)->mousePosition.y);
+				setCaretToMouse(((InputEvent*)event)->mousePosition.x, ((InputEvent*)event)->mousePosition.y - linesContainer->getPosition().y);
 				draggingSelection = true;
 			break;
 			case InputEvent::EVENT_MOUSEUP:
@@ -832,8 +992,9 @@ void UITextInput::handleEvent(Event *event) {
 				selectWordAtCaret();
 			break;
 			case InputEvent::EVENT_MOUSEMOVE:
+				CoreServices::getInstance()->getCore()->setCursor(CURSOR_TEXT);			
 				if(draggingSelection) {
-					dragSelectionTo(((InputEvent*)event)->mousePosition.x, ((InputEvent*)event)->mousePosition.y);		
+					dragSelectionTo(((InputEvent*)event)->mousePosition.x, ((InputEvent*)event)->mousePosition.y - linesContainer->getPosition().y);		
 				}
 			break;
 			case InputEvent::EVENT_MOUSEOVER:

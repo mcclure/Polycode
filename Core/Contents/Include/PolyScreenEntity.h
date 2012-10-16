@@ -164,6 +164,7 @@ class _PolyExport ScreenEntity : public Entity, public EventDispatcher {
 		void focusNextChild();
 	
 		Vector2 getPosition2D() const;
+		Vector2 getScreenPosition() const;
 		
 		static const int POSITION_TOPLEFT = 0;
 		static const int POSITION_CENTER = 1;
@@ -206,7 +207,6 @@ class _PolyExport ScreenEntity : public Entity, public EventDispatcher {
 		Rectangle *dragLimits;
 		
 		int lastClickTicks;
-		ScreenEntity *focusedChild;
 
 };
 

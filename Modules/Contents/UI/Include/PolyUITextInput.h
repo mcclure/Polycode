@@ -29,16 +29,30 @@
 #include "PolyScreenEntity.h"
 #include "PolyUIEvent.h"
 #include "PolyUIBox.h"
+#include "PolyUIElement.h"
 #include "PolyTimer.h"
 #include "PolyCoreInput.h"
 #include "PolyCore.h"
 #include <vector>
+#include "PolyUIScrollContainer.h"
 
 using namespace std;
 
+#define MAX_TEXTINPUT_UNDO_STATES 30
+
 namespace Polycode {
 
-	class _PolyExport UITextInput : public ScreenEntity {
+	class UITextInputUndoState {
+		public:
+			String content;
+			unsigned int lineOffset;
+			unsigned int caretPosition;
+			bool hasSelection;			
+			int selectionLine;
+			int selectionCaretPosition;
+	};
+
+	class _PolyExport UITextInput : public UIElement {
 		public:
 			UITextInput(bool multiLine, Number width, Number height);
 			virtual ~UITextInput();
@@ -61,14 +75,28 @@ namespace Polycode {
 			void deleteSelection();		
 			void selectAll();
 		
-			void Resize(int x, int y);
+			void Undo();
+			void Redo();
+			void Cut();
+			void Copy();
+			void Paste();
+			
+			void showLine(unsigned int lineNumber, bool top);
+
+					
+			void Resize(Number width, Number height);
 			
 			void setNumberOnly(bool val);
 		
 			String getSelectionText();
 			void insertText(String text);
+			
+			UIScrollContainer *getScrollContainer();
 		
 		protected:
+				
+			void setUndoState(UITextInputUndoState state);
+			void saveUndoState();
 		
 			bool isNumberOnly;
 		
@@ -108,12 +136,22 @@ namespace Polycode {
 			int caretPosition;
 			bool doSelectToCaret;
 		
+			ScreenEntity *linesContainer;
+			
+			vector<ScreenLabel*> linesToDelete;		
+			
+			UITextInputUndoState undoStates[MAX_TEXTINPUT_UNDO_STATES];
+			int undoStateIndex;
+			int maxRedoIndex;
+		
 			bool multiLine;
 			Timer *blinkTimer;
 			UIBox *inputRect;
 			ScreenShape *blinkerRect;
 		
 			Number caretImagePosition;
+			
+			UIScrollContainer *scrollContainer;
 		
 			String fontName;
 			Number fontSize;

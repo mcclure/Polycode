@@ -172,21 +172,25 @@ CocoaCore::CocoaCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, 
 }
 
 void CocoaCore::copyStringToClipboard(const String& str) {
+
 	NSPasteboard *pb = [NSPasteboard generalPasteboard];
     NSArray *types = [NSArray arrayWithObjects:NSStringPboardType, nil];
-    [pb declareTypes:types owner:glView];
+    [pb declareTypes:types owner:nil];
 	
-	//NSString *nsstr = [NSString stringWithCharacters: (unichar*) str.c_str() length: str.length()];
-	
+	NSString *nsstr = [NSString stringWithCString: str.c_str()];
+	/*
 	char* data = (char*)str.c_str();
 	unsigned size = str.size() * sizeof(char);
 	
 	NSString* nsstr = [[[NSString alloc] initWithBytes:data length:size encoding:NSUTF32LittleEndianStringEncoding] autorelease];
+	*/
     [pb setString: nsstr forType:NSStringPboardType];	
 }
 
 String CocoaCore::getClipboardString() {
-	
+	NSPasteboard *pb = [NSPasteboard generalPasteboard];		
+	NSString* retString = [pb stringForType:NSStringPboardType];
+	return [retString UTF8String];
 }
 
 void CocoaCore::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, int aaLeve, int anisotropyLevel) {
@@ -248,6 +252,36 @@ void CocoaCore::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, in
 	*/
 }
 
+void CocoaCore::launchApplicationWithFile(String application, String file) {
+	NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+	NSURL *url = [NSURL fileURLWithPath: [NSString stringWithCString:application.c_str()]];
+
+	NSError *error = nil;
+	NSArray *arguments = [NSArray arrayWithObjects: [NSString stringWithCString:file.c_str()], nil];
+	[workspace launchApplicationAtURL:url options:0 configuration:[NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:&error];
+//Handle error
+}
+
+String CocoaCore::executeExternalCommand(String command) {
+	FILE *fp = popen(command.c_str(), "r");
+	if(!fp) {
+		return "Unable to execute command";
+	}	
+	
+	int fd = fileno(fp);
+	
+	char path[1024];
+	String retString;
+	
+	while (fgets(path, sizeof(path), fp) != NULL) {
+		retString = retString + String(path);
+	}
+
+	fclose(fp);
+	pclose(fp);
+	return retString;
+}
+
 void CocoaCore::resizeTo(int xRes, int yRes) {
 	this->xRes = xRes;
 	this->yRes = yRes;
@@ -262,6 +296,7 @@ vector<Polycode::Rectangle> CocoaCore::getVideoModes() {
 
 CocoaCore::~CocoaCore() {
 	printf("Shutting down cocoa core\n");
+	[glView setCore:nil];	
 	shutdownGamepad();
 	if(fullScreen) {
 		[glView exitFullScreenModeWithOptions:nil];

@@ -21,57 +21,21 @@ THE SOFTWARE.
 */
 
 #pragma once
-#include "PolyLogger.h"
+
 #include "PolyGlobals.h"
-#include "PolyPeer.h"
-#include "PolyTimer.h"
-#include "PolyEvent.h"
+#include "PolyServer.h"
 
 namespace Polycode {
-	
-	typedef struct {
-		char dummy;
-	} DummyData;
-	
-	class _PolyExport ClientEvent : public Event {
-	public:
-		ClientEvent(){}
-		virtual ~ClientEvent(){}
 
-		char data[MAX_PACKET_SIZE];
-		unsigned int dataSize;
-		unsigned short dataType;
-				
-		static const int EVENT_SERVER_DATA = 0;
-		static const int EVENT_CLIENT_READY = 1;		
-		static const int EVENT_SERVER_DISCONNECTED = 2;			
-	};		
+class ServerClient;
 	
-	class _PolyExport Client : public Peer {
+class _PolyExport ServerWorld {
 	public:
-		Client(unsigned int port, int rate);
-		virtual ~Client();
-		
-		void updatePeer();
-		void Connect(std::string ipAddress, unsigned int port);
-		void Disconnect();
-		void setPersistentData(void *data, unsigned int size);
-		
-		unsigned int getClientID();
-		
-		void sendReliableDataToServer(char *data, unsigned int size, unsigned short type);
-		
-		void handlePacket(Packet *packet, PeerConnection *connection);
-		
-		void handleEvent(Event *event);
-	private:
-		
-		int clientID;
-		
-		void *data;
-		unsigned int dataSize;
-		Timer *rateTimer;
-		Address serverAddress;
-		bool connected;
-	};
+		ServerWorld() {}
+		~ServerWorld() {};
+	
+		virtual void updateWorld(Number elapsed) = 0;
+		virtual void getWorldState(ServerClient *client, char **worldData,unsigned int *worldDataSize) = 0;
+};
+
 }

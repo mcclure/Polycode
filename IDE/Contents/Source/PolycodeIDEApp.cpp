@@ -26,7 +26,7 @@
 using namespace Polycode;
 
 PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
-	core = new CocoaCore(view, 800,600,false,false, 0, 0,60);	
+	core = new CocoaCore(view, 800,600,false,true, 0, 0,60);	
 	core->addEventListener(this, Core::EVENT_CORE_RESIZE);	
 	CoreServices::getInstance()->getRenderer()->setClearColor(0.2,0.2,0.2);
 	
@@ -75,6 +75,8 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	frame->Resize(core->getXRes(), core->getYRes());	
 	core->setVideoMode(1000, 600, false, false, 0, 0);
 	
+	debugger = new PolycodeRemoteDebugger();
+	frame->console->setDebugger(debugger);
 	
 //	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"tomato.polyapp");
 	
@@ -162,12 +164,13 @@ void PolycodeIDEApp::runProject() {
 		String outPath = PolycodeToolLauncher::generateTempPath() + ".polyapp";
 		PolycodeToolLauncher::buildProject(projectManager->getActiveProject(), outPath);
 		PolycodeToolLauncher::runPolyapp(outPath);
-		core->removeDiskItem(outPath);
 	}
 }
 
 void PolycodeIDEApp::saveFile() {
-	editorManager->getCurrentEditor()->saveFile();
+	if(editorManager->getCurrentEditor()) {
+		editorManager->getCurrentEditor()->saveFile();
+	}
 }
 
 void PolycodeIDEApp::handleEvent(Event *event) {
@@ -338,11 +341,13 @@ bool PolycodeIDEApp::Update() {
 	}
 	
 	if(projectManager->getProjectCount() > 0) {
-		frame->welcomeEntity->visible =  false;
-		frame->projectBrowser->visible =  true;		
+		frame->welcomeEntity->enabled =  false;
+		frame->projectBrowser->enabled =  true;		
+		frame->mainSizer->enabled = true;
 	} else {
-		frame->welcomeEntity->visible =  true;
-		frame->projectBrowser->visible =  false;			
+		frame->welcomeEntity->enabled =  true;
+		frame->projectBrowser->enabled =  false;			
+		frame->mainSizer->enabled = false;		
 	}
 
 	return core->Update();

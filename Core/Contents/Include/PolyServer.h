@@ -35,7 +35,7 @@ namespace Polycode {
 	class _PolyExport ServerClientEvent : public Event {
 	public:
 		ServerClientEvent() {}
-		virtual ~ServerClientEvent() {}
+		~ServerClientEvent() {}
 		
 		char *data;
 		unsigned int dataSize;
@@ -47,7 +47,7 @@ namespace Polycode {
 	class _PolyExport ServerClient : public EventDispatcher {
 	public:
 		ServerClient();
-		virtual ~ServerClient();
+		~ServerClient();
 		
 		void handlePacket(Packet *packet);
 		
@@ -58,7 +58,7 @@ namespace Polycode {
 	class _PolyExport ServerEvent : public Event {
 	public:
 		ServerEvent(){client = NULL; }
-		virtual ~ServerEvent(){}
+		~ServerEvent(){}
 		
 		ServerClient *client;
 		
@@ -69,8 +69,8 @@ namespace Polycode {
 
 	class _PolyExport Server : public Peer {
 		public:
-			Server(unsigned int port, unsigned int rate, ServerWorld *world);
-			virtual ~Server();
+			Server(unsigned int port, unsigned int rate, ServerWorld *world = NULL);
+			~Server();
 		
 			void DisconnectClient(ServerClient *client);
 			void handleEvent(Event *event);		

@@ -25,6 +25,7 @@
 #include "PolyGlobals.h"
 #include "PolyCore.h"
 #include "PolyInputKeys.h"
+#include "PolyInputEvent.h"
 #include "PolyRectangle.h"
 
 #include <winsock2.h>
@@ -111,6 +112,7 @@ namespace Polycode {
 		int eventCode;		
 		int mouseX;
 		int mouseY;
+		TouchInfo touch;
 		std::vector<TouchInfo> touches;
 		PolyKEY keyCode;
 		wchar_t unicodeChar;		
@@ -178,6 +180,8 @@ public:
 		unsigned int getTicks();		
 		bool Update();
 
+		void setVSync(bool vSyncVal);
+
 		void handleKeyDown(LPARAM lParam, WPARAM wParam, wchar_t unicodeChar);
 		void handleKeyUp(LPARAM lParam, WPARAM wParam);
 		void handleMouseMove(LPARAM lParam, WPARAM wParam);
@@ -185,6 +189,8 @@ public:
 		void handleMouseDown(int mouseCode,LPARAM lParam, WPARAM wParam);
 		void handleMouseUp(int mouseCode,LPARAM lParam, WPARAM wParam);
 		void handleTouchEvent(LPARAM lParam, WPARAM wParam);
+
+		bool isMultiTouchEnabled() { return hasMultiTouch; }
 
 		void setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel);
 		
@@ -218,6 +224,8 @@ public:
 		void initTouch();
 
 		// NEED TO IMPLEMENT:
+
+		String executeExternalCommand(String command) { return "";}
 
 		void openURL(String url) {}
 		void setCursor(int cursorType){ }
