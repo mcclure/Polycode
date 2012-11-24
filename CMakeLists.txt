@@ -25,6 +25,7 @@ OPTION(POLYCODE_BUILD_PLAYER "Build Polycode standalone player" OFF)
 OPTION(POLYCODE_BUILD_TOOLS "Build Polycode tools" ON)
 OPTION(POLYCODE_BUILD_DOCS "Build Polycode documentation" ON)
 OPTION(POLYCODE_DEBUG_SYMBOLS "Build Polycode in debug mode" OFF)
+OPTION(POLYCODE_USE_OPENAL "Use OpenAL for sound support" ON)
 
 OPTION(POLYCODE_INSTALL_FRAMEWORK "Install Polycode Core, Modules and Tools" ON)
 OPTION(POLYCODE_INSTALL_PLAYER "Install Polycode Player" ${POLYCODE_BUILD_PLAYER})
