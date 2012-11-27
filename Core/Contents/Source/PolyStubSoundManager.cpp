@@ -18,43 +18,31 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
- */
+*/
 
-#pragma once
-#include "PolyGlobals.h"
-#include "PolyVector3.h"
+#include "PolySoundManager.h"
+#include "PolyLogger.h"
 
-#if POLYCODE_USE_OPENAL
-#include "al.h"
-#include "alc.h"
-#else
-typedef void ALCdevice;
-typedef void ALCcontext;
-#endif
+// This is a do-nothing implementation of SoundManager. See PolyStubSound
 
-namespace Polycode {
-	
-	/**
-	* Controls global sound settings.
-	*/
-	class _PolyExport SoundManager {
-	public:
-		SoundManager();
-		virtual ~SoundManager();
-		
-		void setListenerPosition(Vector3 position);
-		void setListenerOrientation(Vector3 orientation, Vector3 upVector);	
-		void initAL();
-		
-		/**
-		* Sets the global sound volume.
-		*/ 
-		void setGlobalVolume(Number globalVolume);
-		
-		
-	protected:
-		
-		ALCdevice* device;
-		ALCcontext* context;		
-	};
+using namespace Polycode;
+
+SoundManager::SoundManager() {
+	device = NULL;
+	context = NULL;
+}
+
+void SoundManager::initAL() {
+}
+
+void SoundManager::setGlobalVolume(Number globalVolume) {
+}
+
+void SoundManager::setListenerPosition(Vector3 position) {
+}
+
+void SoundManager::setListenerOrientation(Vector3 orientation, Vector3 upVector) {
+}
+
+SoundManager::~SoundManager() {
 }
