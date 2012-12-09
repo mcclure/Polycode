@@ -131,6 +131,7 @@ OPTION(POLYCODE_DEPS_GLEXT "Download GL/glext.h header" ${internal_GLEXT})
 OPTION(POLYCODE_DEPS_WGLEXT "Download GL/wglext.h header" ${internal_WGLEXT})
 
 OPTION(POLYCODE_DEPS_PHYSFS "Download and build the PhysFS package" ${internal_PHYSFS})
+OPTION(POLYCODE_USE_OPENAL "Use OpenAL for sound support" ON)
 if(POLYCODE_USE_OPENAL)
 	OPTION(POLYCODE_DEPS_OPENAL "Download and build the OpenAL package" ${internal_OPENAL})
 ELSE(POLYCODE_USE_OPENAL)
