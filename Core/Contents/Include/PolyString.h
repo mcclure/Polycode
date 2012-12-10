@@ -103,7 +103,7 @@ namespace Polycode {
 			* Find last occurrence of content in string. 
 			* @param str String to be searched for in the object.
 			* @param pos Position of the last character in the string to be taken into consideration for possible matches. The default value indicates that the entire string is searched.
-			* @return The position of the last occurrence in the string of the searched content
+			* @return The position of the last occurrence in the string of the searched content or -1 if not found
 			*/							
 			size_t rfind ( const String &str, size_t pos = std::wstring::npos ) const { return contents.rfind(str.contents, pos); }
 			
@@ -111,7 +111,7 @@ namespace Polycode {
 			* Find content in string. 
 			* @param str String to be searched for in the object.
 			* @param pos Position of the first character in the string to be taken into consideration for possible matches. The default value indicates that the entire string is searched.
-			* @return The position of the first occurrence in the string of the searched content
+			* @return The position of the first occurrence in the string of the searched content or -1 if not found.
 			*/										
 			size_t find ( const String &str, size_t pos = 0 ) const { return contents.find(str.contents, pos); }
 			
@@ -122,6 +122,17 @@ namespace Polycode {
 			* @return The position of the last occurrence in the string of any of the characters searched for.
 			*/													
 			size_t find_last_of(const String& str, size_t pos = std::wstring::npos ) { return contents.find_last_of(str.contents, pos); }
+		
+			
+			/**
+			* Find character in string from the beginning. Searches the string from the beginnign for any of the characters that are part of the passed string.
+			* @param str String containing the characters to search for.
+			* @param pos Position of the first character in the string to be taken into consideration for possible matches. The default value indicates that the entire string is searched.
+			* @return The position of the last occurrence in the string of any of the characters searched for.
+			*/			
+			size_t find_first_of(const String &str, size_t pos = 0) {
+				return contents.find_first_of(str.contents, pos); 
+			}
 		
 			inline String operator + (const char *str) const { return String(contents + String(str).contents); }		
 			inline String operator + (const String &str) const { return String(contents + str.contents); }		
@@ -210,6 +221,11 @@ namespace Polycode {
 			*/																																		
 			void setDataWithEncoding(char *data, int encoding);
 			
+			/**
+			* Checks if the string is a number
+			* @return true if the string is a number
+			*/			
+			bool isNumber();
 
 			/**
 			* STL string version of the string.

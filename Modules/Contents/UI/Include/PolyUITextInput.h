@@ -51,6 +51,26 @@ namespace Polycode {
 			int selectionLine;
 			int selectionCaretPosition;
 	};
+	
+	class _PolyExport SyntaxHighlightToken {
+		public:
+			SyntaxHighlightToken(String text, int type) { this->text = text; this->type = type; }
+			Color color;
+			String text;
+			unsigned int type;
+	};
+	
+	class _PolyExport UITextInputSyntaxHighlighter {
+		public:		
+			virtual std::vector<SyntaxHighlightToken> parseText(String text) = 0;
+	};
+
+	class _PolyExport FindMatch {
+		public:
+			unsigned int lineNumber;
+			unsigned int caretStart;
+			unsigned int caretEnd;							
+	};
 
 	class _PolyExport UITextInput : public UIElement {
 		public:
@@ -66,6 +86,7 @@ namespace Polycode {
 		
 			int insertLine(bool after);
 		
+			void changedText();
 			
 			void onKeyDown(PolyKEY key, wchar_t charCode);
 		
@@ -81,12 +102,22 @@ namespace Polycode {
 			void Copy();
 			void Paste();
 			
+			void replaceAll(String what, String withWhat);
+			
+			void findString(String stringToFind, bool replace=false, String replaceString="");
+			void findNext();
+			void findPrevious();
+			void findCurrent();
+						
 			void showLine(unsigned int lineNumber, bool top);
 
+			void setSyntaxHighlighter(UITextInputSyntaxHighlighter *syntaxHighliter);
 					
 			void Resize(Number width, Number height);
 			
 			void setNumberOnly(bool val);
+		
+			String getLineText(unsigned int index);
 		
 			String getSelectionText();
 			void insertText(String text);
@@ -118,6 +149,8 @@ namespace Polycode {
 			ScreenShape *selectorRectBottom;		
 			int numLines;
 			
+			bool needFullRedraw;
+			
 			Number padding;
 			Number lineSpacing;
 		
@@ -125,6 +158,8 @@ namespace Polycode {
 			int selectionBottom;
 			int selectionL;
 			int selectionR;		
+		
+			bool settingText;
 		
 			int selectionCaretPosition;
 			int selectionLine;
@@ -135,10 +170,15 @@ namespace Polycode {
 		
 			int caretPosition;
 			bool doSelectToCaret;
+			
+			UITextInputSyntaxHighlighter *syntaxHighliter;
 		
 			ScreenEntity *linesContainer;
 			
-			vector<ScreenLabel*> linesToDelete;		
+			vector<ScreenLabel*> linesToDelete;	
+			
+			std::vector<FindMatch> findMatches;
+			int findIndex;
 			
 			UITextInputUndoState undoStates[MAX_TEXTINPUT_UNDO_STATES];
 			int undoStateIndex;

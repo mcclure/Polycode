@@ -23,8 +23,10 @@
 #include "PolycodeRemoteDebugger.h"
 
 
-PolycodeRemoteDebugger::PolycodeRemoteDebugger() {
+PolycodeRemoteDebugger::PolycodeRemoteDebugger(PolycodeProjectManager *projectManager) {
 	server = new Server(4630, 1);
+	
+	this->projectManager = projectManager;
 
 	server->addEventListener(this, ServerEvent::EVENT_CLIENT_CONNECTED);
 	server->addEventListener(this, ServerEvent::EVENT_CLIENT_DISCONNECTED);		
@@ -41,6 +43,13 @@ bool PolycodeRemoteDebugger::isConnected() {
 
 void PolycodeRemoteDebugger::injectCode(String code) {
 	server->sendReliableDataToAllClients((char*)code.c_str(), code.length()+1, EVENT_INJECT_CODE);
+}
+
+void PolycodeRemoteDebugger::Disconnect() {
+	for(int i=0; i < debuggerClients.size(); i++) {
+		server->DisconnectClient(debuggerClients[i]->client);
+	}
+	debuggerClients.clear();
 }
 
 void PolycodeRemoteDebugger::handleEvent(Event *event) {
@@ -60,12 +69,25 @@ void PolycodeRemoteDebugger::handleEvent(Event *event) {
 						}
 						break;	
 						case EVENT_DEBUG_ERROR:
-						{
-							String printStr = String(clientEvent->data);
-							PolycodeConsole::print(printStr);		
-							PolycodeConsole::print("\n");							
+						{			
+							RemoteErrorData *data = (RemoteErrorData*)clientEvent->data;			
+							PolycodeConsole::print("Error in file "+String(data->fileName)+" on line "+String::IntToString(data->lineNumber)+"\n");
+							PolycodeConsole::print(String(data->errorMessage)+"\n");
+							PolycodeConsole::print("Backtrace:\n");
+							
+							CoreServices::getInstance()->getCore()->makeApplicationMain();
+							
+						}
+						break;			
+						case EVENT_DEBUG_BACKTRACE_INFO:
+						{			
+							RemoteBacktraceData *data = (RemoteBacktraceData*)clientEvent->data;			
+							PolycodeConsole::print("In file "+String(data->fileName)+" on line "+String::IntToString(data->lineNumber)+"\n");
+							
+							PolycodeConsole::addBacktrace(String(data->fileName), data->lineNumber, projectManager->getActiveProject());
 						}
 						break;							
+										
 					}
 				break;
 			}

@@ -26,7 +26,7 @@
 using namespace Polycode;
 
 PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
-	core = new CocoaCore(view, 800,600,false,true, 0, 0,60);	
+	core = new CocoaCore(view, 900,700,false,true, 0, 0,60);	
 	core->addEventListener(this, Core::EVENT_CORE_RESIZE);	
 	CoreServices::getInstance()->getRenderer()->setClearColor(0.2,0.2,0.2);
 	
@@ -34,6 +34,8 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 				
 	CoreServices::getInstance()->getResourceManager()->addArchive("default.pak");
 	CoreServices::getInstance()->getResourceManager()->addDirResource("default");	
+
+	CoreServices::getInstance()->getResourceManager()->addArchive("api.pak");
 
 	CoreServices::getInstance()->getConfig()->loadConfig("Polycode", RESOURCE_PATH"UIThemes/default/theme.xml");
 	CoreServices::getInstance()->getResourceManager()->addDirResource(RESOURCE_PATH"UIThemes/default/", false);
@@ -48,14 +50,10 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	
 	editorManager = new PolycodeEditorManager();
 	
-	editorManager->registerEditorFactory(new PolycodeImageEditorFactory());
-	editorManager->registerEditorFactory(new PolycodeScreenEditorFactory());	
-	editorManager->registerEditorFactory(new PolycodeFontEditorFactory());
-	editorManager->registerEditorFactory(new PolycodeTextEditorFactory());
-	editorManager->registerEditorFactory(new PolycodeProjectEditorFactory());
-		
 	frame = new PolycodeFrame();
 	frame->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
+
+	frame->console->backtraceWindow->addEventListener(this, BackTraceEvent::EVENT_BACKTRACE_SELECTED);
 
 	frame->textInputPopup->addEventListener(this, UIEvent::OK_EVENT);	
 	frame->newProjectWindow->addEventListener(this, UIEvent::OK_EVENT);
@@ -63,7 +61,8 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	frame->exampleBrowserWindow->addEventListener(this, UIEvent::OK_EVENT);
 	
 	frame->playButton->addEventListener(this, UIEvent::CLICK_EVENT);
-	
+	frame->stopButton->addEventListener(this, UIEvent::CLICK_EVENT);
+		
 	screen->addChild(frame);
 	
 	projectManager = new PolycodeProjectManager();
@@ -73,10 +72,18 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	frame->getProjectBrowser()->addEventListener(this, PolycodeProjectBrowserEvent::SHOW_MENU);
 	
 	frame->Resize(core->getXRes(), core->getYRes());	
-	core->setVideoMode(1000, 600, false, false, 0, 0);
+	core->setVideoMode(1000, 700, false, false, 0, 0);
 	
-	debugger = new PolycodeRemoteDebugger();
+	debugger = new PolycodeRemoteDebugger(projectManager);
 	frame->console->setDebugger(debugger);
+	
+	editorManager->registerEditorFactory(new PolycodeImageEditorFactory());
+	editorManager->registerEditorFactory(new PolycodeScreenEditorFactory());	
+	editorManager->registerEditorFactory(new PolycodeFontEditorFactory());
+	editorManager->registerEditorFactory(new PolycodeTextEditorFactory());
+	editorManager->registerEditorFactory(new PolycodeProjectEditorFactory(projectManager));
+		
+	
 	
 //	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"tomato.polyapp");
 	
@@ -159,11 +166,32 @@ void PolycodeIDEApp::browseExamples() {
 
 }
 
+void PolycodeIDEApp::stopProject() {
+	printf("Disconnecting clients...\n");
+	if(debugger->isConnected()) {
+		debugger->Disconnect();
+	}
+}
+
 void PolycodeIDEApp::runProject() {
+	printf("Running project...\n");
+	stopProject();
+
 	if(projectManager->getActiveProject()) {
-		String outPath = PolycodeToolLauncher::generateTempPath() + ".polyapp";
+		String outPath = PolycodeToolLauncher::generateTempPath(projectManager->getActiveProject()) + ".polyapp";
 		PolycodeToolLauncher::buildProject(projectManager->getActiveProject(), outPath);
 		PolycodeToolLauncher::runPolyapp(outPath);
+	} else {
+		PolycodeConsole::print("No active project!\n");
+	}
+}
+
+void PolycodeIDEApp::findText() {
+	if(editorManager->getCurrentEditor()) {
+		if(editorManager->getCurrentEditor()->getEditorType() == "PolycodeTextEditor") {
+			PolycodeTextEditor *textEditor = (PolycodeTextEditor*) editorManager->getCurrentEditor();
+			textEditor->showFindBar();
+		}
 	}
 }
 
@@ -173,7 +201,68 @@ void PolycodeIDEApp::saveFile() {
 	}
 }
 
+void PolycodeIDEApp::openFileInProject(PolycodeProject *project, String filePath) {
+	OSFileEntry fileEntry = OSFileEntry(project->getRootFolder()+"/"+filePath, OSFileEntry::TYPE_FILE);	
+	OSFILE *file = OSBasics::open(project->getRootFolder()+"/"+filePath,"r");
+	
+	if(file) {
+		OSBasics::close(file);
+		openFile(fileEntry);		
+	} else {
+		fileEntry = OSFileEntry(filePath, OSFileEntry::TYPE_FILE);	
+		file = OSBasics::open(filePath,"r");	
+		if(file) {
+			OSBasics::close(file);
+			openFile(fileEntry);							
+		} else {
+			PolycodeConsole::print("File not available.\n");
+		}
+	}
+
+}
+
+void PolycodeIDEApp::openFile(OSFileEntry file) {
+	PolycodeEditor *editor;
+	editor = editorManager->getEditorForPath(file.fullPath);
+	if(editor) {
+		frame->showEditor(editor);				
+	} else {
+		editor = editorManager->createEditorForExtension(file.extension);
+		if(editor) {
+			if(editor->openFile(file)) {
+				frame->addEditor(editor);					
+				frame->showEditor(editor);
+			} else {
+				delete editor;
+				editor = NULL;
+			}
+		}
+	}
+							
+	if(editor) {
+		editorManager->setCurrentEditor(editor);
+	}
+		
+}
+
 void PolycodeIDEApp::handleEvent(Event *event) {
+
+	if(event->getDispatcher() == frame->console->backtraceWindow) {
+		if(event->getEventType() == "BackTraceEvent" && event->getEventCode() == BackTraceEvent::EVENT_BACKTRACE_SELECTED) {
+			BackTraceEvent *btEvent = (BackTraceEvent*) event;
+			openFileInProject(btEvent->project, btEvent->fileName);
+			
+			PolycodeEditor *editor = editorManager->getCurrentEditor();
+			if(editor) {
+				if(editor->getEditorType() == "PolycodeTextEditor") {
+					PolycodeTextEditor *textEditor = (PolycodeTextEditor*) editor;
+					textEditor->highlightLine(btEvent->lineNumber);
+				}
+				
+			}	
+		}
+	}
+
 	if(event->getDispatcher() == core) {
 		switch(event->getEventCode()) {
 			case Core::EVENT_CORE_RESIZE:
@@ -217,27 +306,7 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 				return;			
 			
 			if(selectedData) {
-			PolycodeEditor *editor;
-			editor = editorManager->getEditorForPath(selectedData->fileEntry.fullPath);
-			if(editor) {
-				frame->showEditor(editor);				
-			} else {
-				editor = editorManager->createEditorForExtension(selectedData->fileEntry.extension);
-				if(editor) {
-					if(editor->openFile(selectedData->fileEntry.fullPath)) {
-						frame->addEditor(editor);					
-						frame->showEditor(editor);
-					} else {
-						delete editor;
-						editor = NULL;
-					}
-				}
-			}
-				
-				if(editor) {
-					editorManager->setCurrentEditor(editor);
-				}
-				
+				openFile(selectedData->fileEntry);
 			}
 		}
 	}
@@ -247,6 +316,13 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 			runProject();
 		}
 	}
+
+	if(event->getDispatcher() == frame->stopButton) {	
+		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::CLICK_EVENT) {
+			stopProject();
+		}
+	}
+
 	
 	if(event->getDispatcher() == frame->textInputPopup) {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
@@ -335,6 +411,21 @@ PolycodeIDEApp::~PolycodeIDEApp() {
 }
 
 bool PolycodeIDEApp::Update() {
+
+	if(debugger->isConnected()) {
+			frame->stopButton->visible = true;
+			frame->stopButton->enabled = true;			
+			
+			frame->playButton->visible = false;
+			frame->playButton->enabled = false;			
+			
+	} else {
+			frame->stopButton->visible = false;
+			frame->stopButton->enabled = false;			
+			
+			frame->playButton->visible = true;
+			frame->playButton->enabled = true;				
+	}
 
 	if(projectManager->getProjectCount() == 1) {
 		projectManager->setActiveProject(projectManager->getProjectByIndex(0));

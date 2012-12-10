@@ -86,7 +86,7 @@ PolycodeScreenEditor::~PolycodeScreenEditor() {
 	
 }
 
-bool PolycodeScreenEditor::openFile(String filePath) {
+bool PolycodeScreenEditor::openFile(OSFileEntry filePath) {
 	
 	PolycodeEditor::openFile(filePath);	
 	return true;
@@ -189,5 +189,6 @@ void PolycodeScreenEditor::handleEvent(Event *event) {
 
 void PolycodeScreenEditor::Resize(int x, int y) {
 	grid->setImageCoordinates(0,0,x,y);	
+	PolycodeEditor::Resize(x,y);	
 }
 

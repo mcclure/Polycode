@@ -48,6 +48,7 @@ UITreeContainer::UITreeContainer(String icon, String text, Number treeWidth, Num
 	//bgBox->setPosition(-padding, -padding);
 	
 	scrollChild = new ScreenEntity();
+	scrollChild->processInputEvents = true;
 	
 	rootNode = new UITree(icon, text, treeWidth,0);		
 	rootNode->addEventListener(this, UITreeEvent::NEED_REFRESH_EVENT);	
@@ -59,13 +60,14 @@ UITreeContainer::UITreeContainer(String icon, String text, Number treeWidth, Num
 	width = treeWidth;
 	height = treeHeight;
 	setHitbox(width, height);
+	
+	Resize(width, height);
 }
 
 void UITreeContainer::Resize(Number width, Number height) {
 	mainContainer->Resize(width,height);
 	bgBox->resizeBox(width, height);
 	mainContainer->setPositionY(0);
-
 
 	rootNode->Resize(width);
 //	width = x;

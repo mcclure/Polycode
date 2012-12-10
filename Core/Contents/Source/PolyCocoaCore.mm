@@ -252,6 +252,14 @@ void CocoaCore::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, in
 	*/
 }
 
+void CocoaCore::openFileWithApplication(String file, String application) {
+	NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+	NSString *filePath = [NSString stringWithCString:file.c_str()];
+	NSString *appString = [NSString stringWithCString:application.c_str()];
+		
+	[workspace openFile: filePath withApplication: appString andDeactivate: YES];
+}
+
 void CocoaCore::launchApplicationWithFile(String application, String file) {
 	NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
 	NSURL *url = [NSURL fileURLWithPath: [NSString stringWithCString:application.c_str()]];
@@ -467,26 +475,33 @@ void CocoaCore::moveDiskItem(const String& itemPath, const String& destItemPath)
 void CocoaCore::removeDiskItem(const String& itemPath) {
 	[[NSFileManager defaultManager] removeItemAtPath: [NSString stringWithUTF8String: itemPath.c_str()] error:nil];
 }
+
+void CocoaCore::makeApplicationMain() {
+	[NSApp activateIgnoringOtherApps:YES];
+}
 	
 String CocoaCore::openFolderPicker() {
-	NSOpenPanel *attachmentPanel = [NSOpenPanel openPanel];	
+	unlockMutex(eventMutex);
+	NSOpenPanel *attachmentPanel = [[NSOpenPanel openPanel] retain];
 	[attachmentPanel setCanChooseFiles:NO];
 	[attachmentPanel setCanCreateDirectories: YES];
 	[attachmentPanel setCanChooseDirectories:YES];
 	
-	if ( [attachmentPanel runModalForDirectory:nil file:nil] == NSOKButton )
+	if ( [attachmentPanel runModal] == NSOKButton )
 	{
 		// files and directories selected.
 		NSArray* files = [attachmentPanel filenames];
 		NSString* fileName = [files objectAtIndex:0];
+		[attachmentPanel release];
 		return [fileName UTF8String];
 	} else {
+		[attachmentPanel release];	
 		return [@"" UTF8String];
 	}	
 }
 
 vector<String> CocoaCore::openFilePicker(vector<CoreFileExtension> extensions, bool allowMultiple) {
-	
+	unlockMutex(eventMutex);	
 	vector<String> retVector;
 	
 	NSOpenPanel *attachmentPanel = [NSOpenPanel openPanel];	

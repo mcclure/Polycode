@@ -32,8 +32,8 @@ public:
 	PolycodeEditor(bool _isReadOnly);
 	virtual ~PolycodeEditor();
 	
-	virtual bool openFile(String filePath){ this->filePath = filePath; }
-	virtual void Resize(int x, int y) = 0;
+	virtual bool openFile(OSFileEntry filePath){ this->filePath = filePath.fullPath; }
+	virtual void Resize(int x, int y);
 	
 	virtual void saveFile(){};
 	
@@ -44,9 +44,15 @@ public:
 	
 	bool isReadOnly() { return _isReadOnly; }
 	
+	String getEditorType() { return editorType; }
+	
 protected:
 	String filePath;
 	bool _isReadOnly;
+	
+	Vector2 editorSize;
+	
+	String editorType;
 };
 
 

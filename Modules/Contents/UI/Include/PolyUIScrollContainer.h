@@ -38,13 +38,19 @@ namespace Polycode {
 		void Resize(Number width, Number height);
 		
 		void setScrollValue(Number xScroll, Number yScroll);
-		
+		void scrollVertical(Number amount);
+		void scrollHorizontal(Number amount);
+				
 		void Update();
 		
-		void onMouseWheelDown(Number x, Number y);
-		void onMouseWheelUp(Number x, Number y);		
+		Vector2 getContentSize();
 		
+		void onMouseWheelDown(Number x, Number y);
+		void onMouseWheelUp(Number x, Number y);	
+				
 		void handleEvent(Event *event);
+		
+		Number getVScrollWidth();
 		
 	private:		
 		

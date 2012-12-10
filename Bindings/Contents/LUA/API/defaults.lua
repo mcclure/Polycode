@@ -2,7 +2,9 @@
 for k,v in pairs(math) do _G[k]=v end for k,v in pairs(table) do _G[k]=v end
 _G["count"]=_G["getn"]
 
-_G["print"] = _G["debugPrint"]
+_G["print"] = function(msg)
+	_G["debugPrint"](tostring(msg))
+end
 
 __core__services__instance = Polycore.CoreServices_getInstance()
 
@@ -44,6 +46,20 @@ function delete(c)
 	c:__delete()
 end
 
+function onKeyDown(key)
+end
+
+function onKeyUp(key)
+end
+
+function onMouseDown(button, x,y)
+end
+
+function onMouseUp(button, x,y)
+end
+
+function onMouseMove(x,y)
+end
 
 function Update(e)
 end
