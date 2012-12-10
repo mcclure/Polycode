@@ -22,10 +22,23 @@
  
 #include "PolycodeProjectEditor.h"
 #include "OSBasics.h"
+#include "PolycodeConsole.h"
 
-PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
+PolycodeProjectEditorFactory::PolycodeProjectEditorFactory(PolycodeProjectManager *projectManager) : PolycodeEditorFactory() {
+	this->projectManager = projectManager;
+	extensions.push_back("polyproject");
+}
 
-	grid = new ScreenImage("editorGrid.png");
+PolycodeEditor *PolycodeProjectEditorFactory::createEditor() {
+	PolycodeProjectEditor *editor = new PolycodeProjectEditor(projectManager);
+	return editor;
+}
+
+PolycodeProjectEditor::PolycodeProjectEditor(PolycodeProjectManager *projectManager) : PolycodeEditor(true){
+
+	this->projectManager = projectManager;
+
+	grid = new ScreenImage("Images/editorGrid.png");
 	
 	addChild(grid);
 	grid->snapToPixels = true;
@@ -60,14 +73,14 @@ PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
 		}
 	}
 
-	mainSettingsWindow = new UIWindow("Project Settings", 300, 500);
+	mainSettingsWindow = new UIWindow("Project Settings", 300, 420);
 	mainSettingsWindow->setPosition(10,10);
 	addChild(mainSettingsWindow);
 	
-	ScreenLabel *label2 = new ScreenLabel(L"DEFAULT VIDEO OPTIONS", fontSize+2, fontName, Label::ANTIALIAS_FULL);	
-	label2->setColor(1.0, 1.0, 1.0, 0.5);
+	ScreenLabel *label2 = new ScreenLabel(L"DEFAULT VIDEO OPTIONS", 22, "section", Label::ANTIALIAS_FULL);	
+	label2->setColor(1.0, 1.0, 1.0, 0.4);
 	mainSettingsWindow->addChild(label2);
-	label2->setPosition(padding, 50);		
+	label2->setPosition(padding, 40);		
 
 		
 	label2 = new ScreenLabel(L"Width:", fontSize, fontName, Label::ANTIALIAS_FULL);
@@ -77,7 +90,7 @@ PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
 	defaultWidthInput = new UITextInput(false, 60, 12);	
 	mainSettingsWindow->addChild(defaultWidthInput);
 	defaultWidthInput->setPosition(label2->getPosition().x, label2->getPosition().y+label2->getHeight());
-	
+	defaultWidthInput->setNumberOnly(true);
 
 	label2 = new ScreenLabel(L"Height:", fontSize, fontName, Label::ANTIALIAS_FULL);
 	mainSettingsWindow->addChild(label2);
@@ -86,7 +99,7 @@ PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
 	defaultHeightInput = new UITextInput(false, 60, 12);	
 	mainSettingsWindow->addChild(defaultHeightInput);
 	defaultHeightInput->setPosition(label2->getPosition().x, label2->getPosition().y+label2->getHeight());
-
+	defaultHeightInput->setNumberOnly(true);
 	
 	label2 = new ScreenLabel(L"Anti-aliasing:", fontSize, fontName, Label::ANTIALIAS_FULL);
 	mainSettingsWindow->addChild(label2);
@@ -119,15 +132,16 @@ PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
 	framerateInput = new UITextInput(false, 60, 12);	
 	mainSettingsWindow->addChild(framerateInput);
 	framerateInput->setPosition(label2->getPosition().x, label2->getPosition().y+label2->getHeight());
+	framerateInput->setNumberOnly(true);
 
 	vSyncCheckBox = new UICheckBox("V-Sync", false);
 	vSyncCheckBox->setPosition(padding, framerateInput->getPosition().y+framerateInput->getHeight()+10);
 	mainSettingsWindow->addChild(vSyncCheckBox);
 	
-	label2 = new ScreenLabel(L"STARTUP OPTIONS", fontSize+2, fontName, Label::ANTIALIAS_FULL);	
-	label2->setColor(1.0, 1.0, 1.0, 0.5);
+	label2 = new ScreenLabel(L"STARTUP OPTIONS", 22, "section", Label::ANTIALIAS_FULL);	
+	label2->setColor(1.0, 1.0, 1.0, 0.4);
 	mainSettingsWindow->addChild(label2);
-	label2->setPosition(padding, vSyncCheckBox->getPosition().y+vSyncCheckBox->getHeight()+30);		
+	label2->setPosition(padding, vSyncCheckBox->getPosition().y+vSyncCheckBox->getHeight()+20);		
 	
 	
 	label2 = new ScreenLabel(L"Entry point file:", fontSize, fontName, Label::ANTIALIAS_FULL);
@@ -147,9 +161,15 @@ PolycodeProjectEditor::PolycodeProjectEditor() : PolycodeEditor(true){
 	mainSettingsWindow->addChild(label2);
 	label2->setPosition(padding, entryPointInput->getPosition().y+entryPointInput->getHeight()+10);		
 
-	bgColorBox = new UIColorBox(Color(1.0, 0.5, 0.0, 0.9), 30,30);
+	colorPicker = new UIColorPicker();
+	colorPicker->setPosition(200,200);
+	addChild(colorPicker);
+
+	bgColorBox = new UIColorBox(colorPicker, Color(1.0, 0.5, 0.0, 0.9), 30,30);
 	bgColorBox->setPosition(label2->getPosition().x, label2->getPosition().y+label2->getHeight());
 	mainSettingsWindow->addChild(bgColorBox);
+	
+	
 
 }
 
@@ -157,87 +177,39 @@ PolycodeProjectEditor::~PolycodeProjectEditor() {
 	
 }
 
-bool PolycodeProjectEditor::openFile(String filePath) {
-
-
-	if(!configFile.loadFromXML(filePath)) {
+bool PolycodeProjectEditor::openFile(OSFileEntry filePath) {	
+	
+	associatedProject = projectManager->getProjectByProjectFile(filePath.fullPath);
+	if(!associatedProject) {
 		return false;
 	}
 	
-	if(configFile.root["entryPoint"]) {	
-		entryPointInput->setText(configFile.root["entryPoint"]->stringVal);
-	} else {
-		configFile.root.addChild("entryPoint", "Source/Main.lua");		
-	}
+	entryPointInput->setText(associatedProject->data.entryPoint);
+	defaultWidthInput->setText(String::IntToString(associatedProject->data.defaultWidth));
+	defaultHeightInput->setText(String::IntToString(associatedProject->data.defaultHeight));
+	vSyncCheckBox->setChecked(associatedProject->data.vSync);
 	
-	if(configFile.root["defaultWidth"]) {	
-		defaultWidthInput->setText(configFile.root["defaultWidth"]->stringVal);
-	} else {
-		configFile.root.addChild("defaultWidth", 640);	
-	}
-	
-	if(configFile.root["defaultHeight"]) {		
-		defaultHeightInput->setText(configFile.root["defaultHeight"]->stringVal);
-	} else {
-		configFile.root.addChild("defaultHeight", 480);
-	}
-
-	if(configFile.root["vSync"]) {	
-		vSyncCheckBox->setChecked(configFile.root["vSync"]->boolVal);
-	} else {
-		configFile.root.addChild("vSync", false);
-	}
-
-	
-
 	unsigned int aaMap[7] = {0,1,1,1,2,2,3};
-	if(configFile.root["antiAliasingLevel"]) {
-		aaLevelComboBox->setSelectedIndex(aaMap[configFile.root["antiAliasingLevel"]->intVal]);
-	} else {
-		aaLevelComboBox->setSelectedIndex(0);
-		configFile.root.addChild("antiAliasingLevel", 0);
-	}
+	aaLevelComboBox->setSelectedIndex(aaMap[associatedProject->data.aaLevel]);
 
 	unsigned int afMap[17] = {0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5};
-	if(configFile.root["anisotropyLevel"]) {
-		afLevelComboBox->setSelectedIndex(afMap[configFile.root["anisotropyLevel"]->intVal]);
-	} else {
-		afLevelComboBox->setSelectedIndex(0);
-		configFile.root.addChild("anisotropyLevel", 0);
-	}
-
-	if(configFile.root["frameRate"]) {
-		framerateInput->setText(configFile.root["frameRate"]->stringVal);	
-	} else {
-		configFile.root.addChild("frameRate", 60);	
-	}
+	afLevelComboBox->setSelectedIndex(afMap[associatedProject->data.anisotropy]);
+	framerateInput->setText(String::IntToString(associatedProject->data.frameRate));	
 	
-	if(configFile.root["modules"]) {
-		for(int i=0; i < configFile.root["modules"]->length; i++) {
-			ObjectEntry *module = (*configFile.root["modules"])[i];
-			for(int j=0; j < moduleCheckboxes.size(); j++) {
-				if(moduleCheckboxes[j]->getCaptionLabel() == module->stringVal) {
-					moduleCheckboxes[j]->setChecked(true);
-				}
+	for(int i=0; i < associatedProject->data.modules.size(); i++) {
+		bool hasModule = false;
+		for(int j=0; j < moduleCheckboxes.size(); j++) {
+			if(moduleCheckboxes[j]->getCaptionLabel() == associatedProject->data.modules[i]) {
+				moduleCheckboxes[j]->setChecked(true);
+				hasModule = true;
 			}
-		}
-	}	
-
-	Number backgroundColorR, backgroundColorG, backgroundColorB;	
-	if(configFile.root["backgroundColor"]) {
-		ObjectEntry *color = configFile.root["backgroundColor"];
-		if((*color)["red"] && (*color)["green"] && (*color)["blue"]) {
-			backgroundColorR = (*color)["red"]->NumberVal;
-			backgroundColorG = (*color)["green"]->NumberVal;
-			backgroundColorB = (*color)["blue"]->NumberVal;
-			bgColorBox->setBoxColor(Color(backgroundColorR, backgroundColorG, backgroundColorB, 1.0));	
-		} else {
-			ObjectEntry *color = configFile.root.addChild("backgroundColor");
-			color->addChild("red", 0.0);
-			color->addChild("green", 0.0);
-			color->addChild("blue", 0.0);						
+		}	
+		if(!hasModule) {
+			PolycodeConsole::print("WARNING: MISSING MODULE: "+associatedProject->data.modules[i]);
 		}
 	}
+
+	bgColorBox->setBoxColor(Color(associatedProject->data.backgroundColorR, associatedProject->data.backgroundColorG, associatedProject->data.backgroundColorB, 1.0));	
 	
 	PolycodeEditor::openFile(filePath);	
 	return true;
@@ -245,42 +217,39 @@ bool PolycodeProjectEditor::openFile(String filePath) {
 
 void PolycodeProjectEditor::Resize(int x, int y) {
 	grid->setImageCoordinates(0,0,x,y);	
+	PolycodeEditor::Resize(x,y);	
 }
+
 
 void PolycodeProjectEditor::saveFile() {
 
-	configFile.root["frameRate"]->intVal = atoi(framerateInput->getText().c_str());
-	configFile.root["defaultWidth"]->intVal = atoi(defaultWidthInput->getText().c_str());
-	configFile.root["defaultHeight"]->intVal = atoi(defaultHeightInput->getText().c_str());	
-	configFile.root["entryPoint"]->stringVal = entryPointInput->getText();
-	
-	ObjectEntry *color = configFile.root["backgroundColor"];	
-	(*color)["red"]->NumberVal = bgColorBox->getSelectedColor().r;
-	(*color)["green"]->NumberVal = bgColorBox->getSelectedColor().g;
-	(*color)["blue"]->NumberVal = bgColorBox->getSelectedColor().b;
-
-
-	if(configFile.root["modules"]) {
-		configFile.root["modules"]->Clear();
+	if(!associatedProject) {
+		return;
 	}
+
+	associatedProject->data.frameRate = atoi(framerateInput->getText().c_str());
+	associatedProject->data.defaultWidth = atoi(defaultWidthInput->getText().c_str());
+	associatedProject->data.defaultHeight = atoi(defaultHeightInput->getText().c_str());	
+	associatedProject->data.entryPoint = entryPointInput->getText();
+	
+	associatedProject->data.backgroundColorR = bgColorBox->getSelectedColor().r;
+	associatedProject->data.backgroundColorG = bgColorBox->getSelectedColor().g;
+	associatedProject->data.backgroundColorB = bgColorBox->getSelectedColor().b;		
+
+	associatedProject->data.modules.clear();
 	
 	for(int j=0; j < moduleCheckboxes.size(); j++) {
 		if(moduleCheckboxes[j]->isChecked()) {
-			
-			if(!configFile.root["modules"]) {
-				configFile.root.addChild("modules");	
-			}
-		
-			configFile.root["modules"]->addChild("module", moduleCheckboxes[j]->getCaptionLabel());
+			associatedProject->data.modules.push_back(moduleCheckboxes[j]->getCaptionLabel());
 		}
 	}
-	
+		
 	unsigned int afMap[6] = {0,1,2,4,8,16};
 	unsigned int aaMap[4] = {0,2,4,6};
 		
-	configFile.root["antiAliasingLevel"]->intVal = aaMap[aaLevelComboBox->getSelectedIndex()];
-	configFile.root["anisotropyLevel"]->intVal = afMap[afLevelComboBox->getSelectedIndex()];
-	configFile.root["vSync"]->boolVal = vSyncCheckBox->isChecked();
+	associatedProject->data.aaLevel = aaMap[aaLevelComboBox->getSelectedIndex()];
+	associatedProject->data.anisotropy = afMap[afLevelComboBox->getSelectedIndex()];
+	associatedProject->data.vSync = vSyncCheckBox->isChecked();
 	
-	configFile.saveToXML(filePath);
+	associatedProject->saveFile();
 }

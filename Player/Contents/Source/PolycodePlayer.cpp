@@ -26,17 +26,59 @@ THE SOFTWARE.
 PolycodeRemoteDebuggerClient::PolycodeRemoteDebuggerClient() : EventDispatcher() {
 	client = new Client(6445, 1);
 	client->Connect("127.0.0.1", 4630);	
+	
+	client->addEventListener(this, ClientEvent::EVENT_SERVER_DISCONNECTED);
 }
 
 void PolycodeRemoteDebuggerClient::handleEvent(Event *event) {
+
+	if(event->getDispatcher() == client) {
+		switch(event->getEventCode()) {
+			case ClientEvent::EVENT_SERVER_DISCONNECTED:
+				dispatchEvent(new Event(), Event::COMPLETE_EVENT);
+			break;
+		}
+	} else {
+
 	PolycodeDebugEvent *debugEvent = (PolycodeDebugEvent*) event;
 	switch(event->getEventCode()) {
 		case PolycodeDebugEvent::EVENT_PRINT:
 			client->sendReliableDataToServer((char*)debugEvent->errorString.c_str(), debugEvent->errorString.length()+1, EVENT_DEBUG_PRINT);
 		break;
 		case PolycodeDebugEvent::EVENT_ERROR:
-			client->sendReliableDataToServer((char*)debugEvent->errorString.c_str(), debugEvent->errorString.length()+1, EVENT_DEBUG_ERROR);
+			RemoteErrorData data;
+			
+			if(debugEvent->errorString.length() > 254) {
+				debugEvent->errorString = debugEvent->errorString.substr(0,254);
+			}
+
+			if(debugEvent->fileName.length() > 254) {
+				debugEvent->fileName = debugEvent->fileName.substr(0,254);
+			}
+
+			
+			strcpy(data.errorMessage, debugEvent->errorString.c_str());
+			strcpy(data.fileName, debugEvent->fileName.c_str());
+			data.lineNumber = debugEvent->lineNumber;
+			data.backTraceSize = debugEvent->backTrace.size();
+			
+			client->sendReliableDataToServer((char*)&data, sizeof(data), EVENT_DEBUG_ERROR);
+			
+			for(int i=0; i < debugEvent->backTrace.size(); i++) {
+				RemoteBacktraceData btData;
+				
+			if(debugEvent->backTrace[i].fileName.length() > 254) {
+				debugEvent->backTrace[i].fileName = debugEvent->backTrace[i].fileName.substr(0,254);
+			}
+				
+				
+				strcpy(btData.fileName, debugEvent->backTrace[i].fileName.c_str());
+				btData.lineNumber = debugEvent->backTrace[i].lineNumber;
+				
+				client->sendReliableDataToServer((char*)&btData, sizeof(btData), EVENT_DEBUG_BACKTRACE_INFO);				
+			}
 		break;		
+	}
 	}
 }
 
@@ -46,6 +88,35 @@ PolycodeRemoteDebuggerClient::~PolycodeRemoteDebuggerClient() {
 }
 
 extern "C" {	
+
+	
+static void dumpstack (lua_State *L) {
+  int i;
+  int top=lua_gettop(L);
+  printf("dumpstack -- \n");
+  for (i=1; i<=top; i++) {
+    printf("%d\t%s\t",i,luaL_typename(L,i));
+    switch (lua_type(L, i)) {
+      case LUA_TNUMBER:
+        printf("%g\n",lua_tonumber(L,i));
+        break;
+      case LUA_TSTRING:
+        printf("%s\n",lua_tostring(L,i));
+        break;
+      case LUA_TBOOLEAN:
+        printf("%s\n", (lua_toboolean(L, i) ? "true" : "false"));
+        break;
+      case LUA_TNIL:
+        printf("%s\n", "nil");
+        break;
+      default:
+        printf("%p\n",lua_topointer(L,i));
+        break;
+    }
+  }
+  printf("dumpstack -- END\n");
+}	
+
 //	extern int luaopen_Tau(lua_State* L); // declare the wrapped module
 		//	loadFileIntoState(L, "Polycode Player.app/Contents/Resources/API/class.lua");
 	
@@ -85,22 +156,77 @@ extern "C" {
 	}
 
 	static int customError(lua_State *L) {
-		const char *msg = lua_tostring(L, 1);
 		
+		
+		PolycodePlayer *player = (PolycodePlayer*)CoreServices::getInstance()->getCore()->getUserPointer();		
+		player->crashed = true;
+		
+		std::vector<BackTraceEntry> backTrace;
+		lua_Debug entry;
+		int depth = 0;		
+		while (lua_getstack(L, depth, &entry)) {
+			lua_getinfo(L, "Sln", &entry);
+			printf(">>>> %s(%d): %s\n", entry.short_src, entry.currentline, entry.name ? entry.name : "?");
+			std::vector<String> bits = String(entry.short_src).split("\"");
+			if(bits.size() > 1) {
+				String fileName = bits[1];
+				if(fileName != "class.lua") {
+					
+					BackTraceEntry trace;
+					trace.lineNumber = entry.currentline;
+					trace.fileName = fileName;
+					backTrace.push_back(trace);
+					
+					//backTrace += "In file: " + fileName + " on line " + String::IntToString(entry.currentline)+"\n";
+				}
+			}
+			depth++;
+		}
+
+		// horrible hack to determine the filenames of things
+		bool stringThatIsTheMainFileSet = false;
+		String stringThatIsTheMainFile;
+		
+		if(backTrace.size() == 0) {
+					
+					BackTraceEntry trace;
+					trace.lineNumber = 0;
+					trace.fileName = player->fullPath;
+					backTrace.push_back(trace);
+		
+		} else {
+			stringThatIsTheMainFileSet = true;
+			stringThatIsTheMainFile = backTrace[backTrace.size()-1].fileName;
+			backTrace[backTrace.size()-1].fileName = player->fullPath;
+		}
+		
+		if(stringThatIsTheMainFileSet) {
+			for(int i=0; i < backTrace.size(); i++) {
+				if(backTrace[i].fileName == stringThatIsTheMainFile) {
+					backTrace[i].fileName = player->fullPath;
+				}
+			}
+		}
+		
+		const char *msg = lua_tostring(L, -1);		
 		if (msg == NULL) msg = "(error with no message)";
 		lua_pop(L, 1);
-			
+		
+		String errorString;
 		std::vector<String> info = String(msg).split(":");
 			
-		PolycodeDebugEvent *event = new PolycodeDebugEvent();			
 		if(info.size() > 2) {
-			event->errorString = info[2];
-			event->lineNumber = atoi(info[1].c_str());
+			errorString = info[2];
 		} else {
-			event->errorString = std::string(msg);
-			event->lineNumber = 0;
+			errorString = msg;
 		}
-		PolycodePlayer *player = (PolycodePlayer*)CoreServices::getInstance()->getCore()->getUserPointer();		
+						
+		PolycodeDebugEvent *event = new PolycodeDebugEvent();			
+		event->errorString = errorString;
+		event->backTrace = backTrace;		
+		event->fileName = backTrace[0].fileName;
+		event->lineNumber = backTrace[0].lineNumber;
+
 		player->dispatchEvent(event, PolycodeDebugEvent::EVENT_ERROR);
 				
 		return 0;
@@ -121,11 +247,17 @@ extern "C" {
 		return 0;
 	}	
 	
+	
 	int PolycodePlayer::report (lua_State *L, int status) {
-		const char *msg;
+		const char *msg;		
+		
+		PolycodePlayer *player = (PolycodePlayer*)CoreServices::getInstance()->getCore()->getUserPointer();					
 			
 		Logger::log("Error status: %d\n", status);
-		if (status) {
+		if (status) {		
+		
+			std::vector<BackTraceEntry> backTrace;
+					
 			msg = lua_tostring(L, -1);
 			if (msg == NULL) msg = "(error with no message)";
 			Logger::log("status=%d, %s\n", status, msg);
@@ -133,14 +265,28 @@ extern "C" {
 			
 			std::vector<String> info = String(msg).split(":");
 			
+			BackTraceEntry trace;
+						
 			PolycodeDebugEvent *event = new PolycodeDebugEvent();			
 			if(info.size() > 2) {
 				event->errorString = info[2];
 				event->lineNumber = atoi(info[1].c_str());
+				event->fileName = player->fullPath; 
+				trace.lineNumber = event->lineNumber;
+				trace.fileName = event->fileName;
 			} else {
 				event->errorString = std::string(msg);
 				event->lineNumber = 0;
+				event->fileName = player->fullPath; 								
+				trace.fileName = event->fileName;
+				trace.lineNumber = 0;
 			}
+			
+			
+			backTrace.push_back(trace);
+			
+			event->backTrace = backTrace;
+			
 			dispatchEvent(event, PolycodeDebugEvent::EVENT_ERROR);
 			
 		}
@@ -153,6 +299,9 @@ extern "C" {
 		
 		L=lua_open();
 		
+		if(!L) {
+			printf("ASDASD");
+		}
 		/*
 		 luaopen_base(L);	// load basic libs (eg. print)
 		 luaopen_math(L);
@@ -160,6 +309,8 @@ extern "C" {
 		 luaopen_package(L);
 		 */
 		luaL_openlibs(L);
+		
+		luaopen_debug(L);
 		
 		luaopen_Polycode(L);
 		//luaopen_Tau(L);	// load the wrappered module
@@ -265,41 +416,30 @@ extern "C" {
 			Logger::log("Error opening entrypoint file (%s)\n", fileName.c_str());
 		}
 		
-		
-		String postpend = ""; //" \nif update == nil then\nfunction update(e)\nend\nend\nwhile CORE:Update() do\nupdate(CORE:getElapsed())\nend";
-		
-		//String fullScript = prepend + prepend2 + prepend3 + fileData;// + postpend;
+				
 		String fullScript = fileData;
-		//String fullScript = fileData;// + postpend;
 		
 		doneLoading = true;
 		
 		//lua_gc(L, LUA_GCSTOP, 0);
 		
 		
-/*
-		lua_pushliteral(L, "debug");
-		lua_gettable(L, LUA_GLOBALSINDEX);
-		lua_pushliteral(L, "traceback");  // correct fn name?
-		lua_gettable(L, -2);
 
-*/				
+		lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+		errH = lua_gettop(L);
+
 		//CoreServices::getInstance()->getCore()->lockMutex(CoreServices::getRenderMutex());			
-		if (report(L, luaL_loadstring(L, fullScript.c_str()) || lua_pcall(L, 0,0,0))) {
-			
+		if (report(L, luaL_loadstring(L, fullScript.c_str()))) {			
 			//CoreServices::getInstance()->getCore()->unlockMutex(CoreServices::getRenderMutex());			
 			Logger::log("CRASH LOADING SCRIPT FILE\n");
 //			exit(1);				
-		} else  {
-		//	CoreServices::getInstance()->getCore()->unlockMutex(CoreServices::getRenderMutex());			
-			if (report(L, luaL_loadstring(L, postpend.c_str()) || lua_pcall(L, 0,0,0))) {	
-//				exit(1);
-				Logger::log("CRASH IN SCRIPT EXECUTION FILE\n");			
-			} else  {
-
+		} else {
+		
+		
+			if (lua_pcall(L, 0,0,errH)) {
+				Logger::log("CRASH EXECUTING FILE\n");
 			}
 		}
-
 	}
 }
 
@@ -315,6 +455,7 @@ PolycodeDebugEvent::~PolycodeDebugEvent() {
 PolycodePlayer::PolycodePlayer(String fileName, bool knownArchive, bool useDebugger) : EventDispatcher()  {
 	L = NULL;
 
+	crashed = false;
 	doCodeInject = false;
 	this->useDebugger = useDebugger;
 	fileToRun = fileName;
@@ -461,6 +602,12 @@ void PolycodePlayer::loadFile(const char *fileName) {
 	}
 	createCore();
 
+	core->getInput()->addEventListener(this, InputEvent::EVENT_KEYDOWN);
+	core->getInput()->addEventListener(this, InputEvent::EVENT_KEYUP);
+	core->getInput()->addEventListener(this, InputEvent::EVENT_MOUSEDOWN);
+	core->getInput()->addEventListener(this, InputEvent::EVENT_MOUSEMOVE);
+	core->getInput()->addEventListener(this, InputEvent::EVENT_MOUSEUP);
+					
 	if(nameString == "") {
 		return;
 	}
@@ -508,8 +655,14 @@ void PolycodePlayer::loadFile(const char *fileName) {
 		Logger::log(fullPath.c_str());
 	}
 	
+	remoteDebuggerClient = NULL;
+	
 	if(useDebugger) {
+	
+			
 		remoteDebuggerClient = new PolycodeRemoteDebuggerClient();
+		remoteDebuggerClient->addEventListener(this, Event::COMPLETE_EVENT);
+		
 		this->addEventListener(remoteDebuggerClient, PolycodeDebugEvent::EVENT_PRINT);
 		this->addEventListener(remoteDebuggerClient, PolycodeDebugEvent::EVENT_ERROR);		
 		remoteDebuggerClient->client->addEventListener(this, ClientEvent::EVENT_CLIENT_READY);
@@ -539,9 +692,18 @@ PolycodePlayer::~PolycodePlayer() {
 
 void PolycodePlayer::handleEvent(Event *event) {	
 
+
 	if(event->getDispatcher() == debuggerTimer) {
 		runFile(fullPath);
 		debuggerTimer->Pause(true);
+	}
+	
+	if(remoteDebuggerClient) {	
+	
+	if(event->getDispatcher() == remoteDebuggerClient) {
+		if(event->getEventCode() == Event::COMPLETE_EVENT) {
+			dispatchEvent(new PolycodeDebugEvent(), PolycodeDebugEvent::EVENT_CLOSE);
+		}
 	}
 
 	if(event->getDispatcher() == remoteDebuggerClient->client) {
@@ -568,6 +730,7 @@ void PolycodePlayer::handleEvent(Event *event) {
 			break;			
 		}
 	}
+	}
 	
 	if(event->getDispatcher() == core) {
 		switch(event->getEventCode()) {
@@ -579,21 +742,80 @@ void PolycodePlayer::handleEvent(Event *event) {
 			break;		
 		}
 	}
+	
+	if(event->getDispatcher() == core->getInput()) {
+		InputEvent *inputEvent = (InputEvent*) event;
+		switch(event->getEventCode()) {
+			case InputEvent::EVENT_KEYDOWN:
+			{
+				if(L && !crashed) {
+					lua_getfield(L, LUA_GLOBALSINDEX, "onKeyDown");
+					lua_pushinteger(L, inputEvent->keyCode());
+					lua_pcall(L, 1,0,errH);					
+				}
+			}
+			break;
+			case InputEvent::EVENT_KEYUP:
+			{
+				if(L && !crashed) {
+					lua_getfield(L, LUA_GLOBALSINDEX, "onKeyUp");
+					lua_pushinteger(L, inputEvent->keyCode());
+					lua_pcall(L, 1,0,errH);					
+				}
+			}
+			break;
+			case InputEvent::EVENT_MOUSEDOWN:
+			{
+				if(L && !crashed) {
+					lua_getfield(L, LUA_GLOBALSINDEX, "onMouseDown");
+					lua_pushinteger(L, inputEvent->mouseButton);
+					lua_pushnumber(L, inputEvent->mousePosition.x);
+					lua_pushnumber(L, inputEvent->mousePosition.y);					
+					lua_pcall(L, 3,0,errH);					
+				}
+			}
+			break;	
+			case InputEvent::EVENT_MOUSEUP:
+			{
+				if(L && !crashed) {
+					lua_getfield(L, LUA_GLOBALSINDEX, "onMouseUp");
+					lua_pushinteger(L, inputEvent->mouseButton);
+					lua_pushnumber(L, inputEvent->mousePosition.x);
+					lua_pushnumber(L, inputEvent->mousePosition.y);					
+					lua_pcall(L, 3,0,errH);					
+				}
+			}
+			break;	
+			case InputEvent::EVENT_MOUSEMOVE:
+			{
+				if(L && !crashed) {
+					lua_getfield(L, LUA_GLOBALSINDEX, "onMouseMove");
+					lua_pushnumber(L, inputEvent->mousePosition.x);
+					lua_pushnumber(L, inputEvent->mousePosition.y);					
+					lua_pcall(L, 2,0,errH);					
+				}
+			}
+			break;																			
+		}
+	}
 }
 
 
 bool PolycodePlayer::Update() {
 	if(L) {
-		
+				
 		if(doCodeInject) {
 			printf("INJECTING CODE:[%s]\n", injectCodeString.c_str());
 			doCodeInject = false;			
-			report(L, luaL_loadstring(L, injectCodeString.c_str()) || lua_pcall(L, 0,0,0));		
+			report(L, luaL_loadstring(L, injectCodeString.c_str()));
+			lua_pcall(L, 0,0,errH);		
 		}
 	
-		lua_getfield(L, LUA_GLOBALSINDEX, "Update");
-		lua_pushnumber(L, core->getElapsed());
-		lua_call(L, 1, 0);
+		if(!crashed) {
+			lua_getfield(L, LUA_GLOBALSINDEX, "Update");
+			lua_pushnumber(L, core->getElapsed());
+			lua_pcall(L, 1,0,errH);
+		}
 	}
 	return core->Update();
 }

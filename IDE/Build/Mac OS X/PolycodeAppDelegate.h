@@ -40,6 +40,7 @@ public:
 	
 	NSMenu *projectMenu;
 	
+	String fileToOpen;
 	BOOL mustShowProjectMenu;
 }
 
@@ -58,10 +59,12 @@ public:
 -(IBAction) newGroup: (id) sender;
 -(IBAction) browseExamples: (id) sender;
 -(IBAction) runProject: (id) sender;
+-(IBAction) exportProject: (id) sender;
 -(IBAction) newProject: (id) sender;
 -(IBAction) closeProject: (id) sender;
 -(IBAction) newFile: (id) sender;
 -(IBAction) openProject: (id) sender;
 -(IBAction) saveFile: (id) sender;
+-(IBAction) findText: (id) sender;
 
 @end

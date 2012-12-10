@@ -35,6 +35,10 @@
 
 using namespace Polycode;
 
+SceneMesh *SceneMesh::SceneMeshFromMesh(Mesh *mesh) {
+	return new SceneMesh(mesh);
+}
+
 SceneMesh::SceneMesh(const String& fileName) : SceneEntity(), texture(NULL), material(NULL), skeleton(NULL), localShaderOptions(NULL) {
 	mesh = new Mesh(fileName);
 	bBoxRadius = mesh->getRadius();
@@ -100,7 +104,24 @@ void SceneMesh::setTexture(Texture *texture) {
 	this->texture = texture;
 }
 
+void SceneMesh::clearMaterial() {
+	if(localShaderOptions)
+		delete localShaderOptions;
+	localShaderOptions = NULL;
+	this->material = NULL;
+}
+
 void SceneMesh::setMaterial(Material *material) {
+
+	if(this->material)
+		clearMaterial();
+	
+	if(!material)
+		return;
+		
+	if(material->getNumShaders() == 0)
+			return;
+		
 	this->material = material;
 	localShaderOptions = material->getShader(0)->createBinding();
 	if(texture) {

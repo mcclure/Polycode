@@ -40,16 +40,19 @@ UIHSizer::UIHSizer(Number width, Number height, Number mainWidth, bool leftSizer
 	separatorBgShape->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
 	separatorBgShape->setColor(0.0, 0.0, 0.0, 1.0);	
 	addChild(separatorBgShape);
+	
 
 	childElements = new ScreenEntity();
+	childElements->processInputEvents = true;
 	addChild(childElements);
 	
 	firstElement = NULL;
 	secondElement = NULL;
 	
-	separatorHitShape = new ScreenShape(ScreenShape::SHAPE_RECT, 6,height);
+	separatorHitShape = new ScreenShape(ScreenShape::SHAPE_RECT, 8,height);
 	separatorHitShape->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
 	separatorHitShape->setColor(1.0, 0.0, 0.0, 0.5);	
+	separatorHitShape->blockMouseInput = true;	
 	addChild(separatorHitShape);
 	
 	separatorHitShape->addEventListener(this, InputEvent::EVENT_MOUSEDOWN);
@@ -57,10 +60,10 @@ UIHSizer::UIHSizer(Number width, Number height, Number mainWidth, bool leftSizer
 	separatorHitShape->addEventListener(this, InputEvent::EVENT_MOUSEUP_OUTSIDE);
 	separatorHitShape->addEventListener(this, InputEvent::EVENT_MOUSEOVER);	
 	separatorHitShape->addEventListener(this, InputEvent::EVENT_MOUSEOUT);		
+	separatorHitShape->addEventListener(this, InputEvent::EVENT_MOUSEMOVE);			
 	separatorHitShape->visible = false;
 	
-	coreInput = CoreServices::getInstance()->getCore()->getInput();
-	
+	coreInput = CoreServices::getInstance()->getCore()->getInput();	
 	coreInput->addEventListener(this, InputEvent::EVENT_MOUSEMOVE);	
 	
 	separatorHitShape->processInputEvents = true;
@@ -88,6 +91,7 @@ void UIHSizer::handleEvent(Event *event) {
 				resizing = false;			
 			}
 			break;
+			case InputEvent::EVENT_MOUSEMOVE:			
 			case InputEvent::EVENT_MOUSEOVER:
 				CoreServices::getInstance()->getCore()->setCursor(CURSOR_RESIZE_LEFT_RIGHT);
 			break;
@@ -154,8 +158,8 @@ void UIHSizer::updateSizer() {
 
 		separatorBgShape->setShapeSize(1, height);
 		separatorBgShape->setPosition(mainWidth,0);
-		separatorHitShape->setShapeSize(6, height);
-		separatorHitShape->setPosition(mainWidth-3,0);
+		separatorHitShape->setShapeSize(8, height);
+		separatorHitShape->setPosition(mainWidth-4,0);
 		
 	} else {
 	
@@ -170,8 +174,8 @@ void UIHSizer::updateSizer() {
 
 		separatorBgShape->setShapeSize(1, height);
 		separatorBgShape->setPosition(width-mainWidth,0);
-		separatorHitShape->setShapeSize(6, height);
-		separatorHitShape->setPosition(width-mainWidth-3,0);
+		separatorHitShape->setShapeSize(8, height);
+		separatorHitShape->setPosition(width-mainWidth-4,0);
 	
 	}
 }

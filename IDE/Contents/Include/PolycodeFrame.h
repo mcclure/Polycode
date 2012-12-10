@@ -26,6 +26,7 @@
 #include "PolycodeEditor.h"
 #include "PolycodeConsole.h"
 #include "NewProjectWindow.h"
+#include "ExportProjectWindow.h"
 #include "ExampleBrowserWindow.h"
 #include "NewFileWindow.h"
 #include "ToolWindows.h"
@@ -64,6 +65,7 @@ public:
 	NewProjectWindow *newProjectWindow;	
 	ExampleBrowserWindow *exampleBrowserWindow;
 	NewFileWindow *newFileWindow;
+	ExportProjectWindow *exportProjectWindow;
 	
 	TextInputPopup *textInputPopup;
 	
@@ -71,7 +73,9 @@ public:
 	PolycodeProjectBrowser *projectBrowser;
 		
 	UIImageButton *playButton;
-	UIHSizer *mainSizer;	
+	UIImageButton *stopButton;
+		
+	UIHSizer *mainSizer;
 	
 	PolycodeConsole *console;
 						

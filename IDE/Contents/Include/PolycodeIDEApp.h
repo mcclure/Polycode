@@ -31,6 +31,7 @@
 #include "PolycodeFrame.h"
 
 #include "PolycodeImageEditor.h"
+#include "PolycodeMaterialEditor.h"
 #include "PolycodeScreenEditor.h"
 #include "PolycodeFontEditor.h"
 #include "PolycodeTextEditor.h"
@@ -53,6 +54,12 @@ public:
 	void saveConfigFile();
 	void loadConfigFile();
 	
+	void openFileInProject(PolycodeProject *project, String filePath);
+	
+	void openFile(OSFileEntry file);
+	
+	void stopProject();
+	
 	// menu commands
 	void renameFile();
 	void removeFile();
@@ -63,15 +70,22 @@ public:
 	void openProject();
 	void closeProject();	
 	void saveFile();
-	
-	void refreshProject();
-	
+	void findText();
 	void runProject();
+	void exportProject();
+	
+	// system callbacks
+	
+	void openProject(String projectFile);
+	
+	void refreshProject();	
 	
 	const static int EVENT_SHOW_MENU = 1;
 	
 	CocoaCore *core;	
-protected:	
+protected:
+
+	bool willRunProject;
 	PolycodeFrame *frame;
 	
 	PolycodeEditorManager *editorManager;

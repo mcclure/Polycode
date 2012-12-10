@@ -18,12 +18,12 @@ def mkdir_p(path): # Same effect as mkdir -p, create dir and all necessary paren
 # Note we expect className to be a valid string
 def template_returnPtrLookup(prefix, className, ptr):
 	out = ""
-	out += "%sif __ptr_lookup[%s][%s] ~= nil then\n" % (prefix, className, ptr)
-	out += "%s\treturn __ptr_lookup[%s][%s]\n" % (prefix, className, ptr)
+	out += "%sif _G[\"__ptr_lookup\"][%s][%s] ~= nil then\n" % (prefix, className, ptr)
+	out += "%s\treturn _G[\"__ptr_lookup\"][%s][%s]\n" % (prefix, className, ptr)
 	out += "%selse\n" % (prefix)
-	out += "%s\t__ptr_lookup[%s][%s] = _G[%s](\"__skip_ptr__\")\n" % (prefix, className, ptr, className)
-	out += "%s\t__ptr_lookup[%s][%s].__ptr = %s\n" % (prefix, className, ptr, ptr)
-	out += "%s\treturn __ptr_lookup[%s][%s]\n" % (prefix, className, ptr)
+	out += "%s\t_G[\"__ptr_lookup\"][%s][%s] = _G[%s](\"__skip_ptr__\")\n" % (prefix, className, ptr, className)
+	out += "%s\t_G[\"__ptr_lookup\"][%s][%s].__ptr = %s\n" % (prefix, className, ptr, ptr)
+	out += "%s\treturn _G[\"__ptr_lookup\"][%s][%s]\n" % (prefix, className, ptr)
 	out += "%send\n" % (prefix)
 	return out
 	
@@ -103,16 +103,14 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 		wrappersHeaderOut += "public:\n"
 		wrappersHeaderOut += "	LuaEventHandler() : EventHandler() {}\n"
 		wrappersHeaderOut += "	void handleEvent(Event *e) {\n"
-		wrappersHeaderOut += "		lua_rawgeti( L, LUA_REGISTRYINDEX, wrapperIndex );\n"
+		wrappersHeaderOut += "		lua_getfield(L, LUA_GLOBALSINDEX, \"EventHandler\" );\n"
 		wrappersHeaderOut += "		lua_getfield(L, -1, \"__handleEvent\");\n"
 		wrappersHeaderOut += "		lua_rawgeti( L, LUA_REGISTRYINDEX, wrapperIndex );\n"
 		wrappersHeaderOut += "		lua_pushlightuserdata(L, e);\n"
-		wrappersHeaderOut += "		if(lua_pcall(L, 2, 0, 0) != 0) {\n"
-		wrappersHeaderOut += "			const char *msg = lua_tostring(L, -1);\n"
-		wrappersHeaderOut += "			lua_getfield(L, LUA_GLOBALSINDEX, \"__customError\");\n"
-		wrappersHeaderOut += "			lua_pushstring(L, msg);\n"
-		wrappersHeaderOut += "			lua_call(L, 1, 0);\n"
-		wrappersHeaderOut += "		}\n"
+#		wrappersHeaderOut += "		lua_getfield (L, LUA_GLOBALSINDEX, \"__customError\");\n"
+#		wrappersHeaderOut += "		int errH = lua_gettop(L);\n"
+#		wrappersHeaderOut += "		lua_pcall(L, 2, 0, errH);\n"
+		wrappersHeaderOut += "		lua_pcall(L, 2, 0, 0);\n"
 		wrappersHeaderOut += "	}\n"
 		wrappersHeaderOut += "	int wrapperIndex;\n"
 		wrappersHeaderOut += "	lua_State *L;\n"
@@ -137,7 +135,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 			f = open(fileName) # Def: Input file handle
 			contents = f.read().replace("_PolyExport", "") # Def: Input file contents, strip out "_PolyExport"
 			cppHeader = CppHeaderParser.CppHeader(contents, "string") # Def: Input file contents, parsed structure
-			ignore_classes = ["PolycodeShaderModule", "Object", "Threaded", "OpenGLCubemap", "ParticleEmitter"]
+			ignore_classes = ["PolycodeShaderModule", "Object", "Threaded", "OpenGLCubemap"]
 
 			# Iterate, check each class in this file.
 			for ckey in cppHeader.classes: 
@@ -146,13 +144,20 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 				luaClassBindingOut = "" # Def: The local lua file to generate for this class.
 				inherits = False
+				parentClass = ""
 				if len(c["inherits"]) > 0: # Does this class have parents?
 					if c["inherits"][0]["class"] not in ignore_classes:
+
 						if c["inherits"][0]["class"] in inheritInModule: # Parent class is in this module
 							luaClassBindingOut += "require \"%s/%s\"\n\n" % (prefix, c["inherits"][0]["class"])
 						else: # Parent class is in Polycore
 							luaClassBindingOut += "require \"Polycode/%s\"\n\n" % (c["inherits"][0]["class"])
+
+						if (ckey == "ScreenParticleEmitter" or ckey == "SceneParticleEmitter"):
+							luaClassBindingOut += "require \"Polycode/ParticleEmitter\"\n\n"
+
 						luaClassBindingOut += "class \"%s\" (%s)\n\n" % (ckey, c["inherits"][0]["class"])
+						parentClass = c["inherits"][0]["class"]
 						inherits = True
 				if inherits == False: # Class does not have parents
 					luaClassBindingOut += "class \"%s\"\n\n" % ckey
@@ -176,7 +181,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						continue
 					if pp["type"].find("static ") != -1: # If static. FIXME: Static doesn't work?
 						if "defaltValue" in pp: # FIXME: defaltValue is misspelled.
-							luaClassBindingOut += "%s = %s\n" % (pp["name"], pp["defaltValue"])
+							luaClassBindingOut += "%s.%s = %s\n" % (ckey, pp["name"], pp["defaltValue"])
 					else: # FIXME: Nonstatic method ? variable ?? found.
 						#there are some bugs in the class parser that cause it to return junk
 						if pp["type"].find("*") == -1 and pp["type"].find("vector") == -1 and pp["name"] != "setScale" and pp["name"] != "setPosition" and pp["name"] != "BUFFER_CACHE_PRECISION" and not pp["name"].isdigit():
@@ -188,7 +193,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				# TODO: Remove or generalize ParticleEmitter special casing. These lines are marked with #SPEC
 
 				if len(classProperties) > 0: # If there are properties, add index lookup to the metatable
-					luaClassBindingOut += "function %s:__index__(name)\n" % ckey
+					luaClassBindingOut += "function %s:__getvar(name)\n" % ckey
 					# Iterate over property structures, creating if/else clauses for each.
 					# TODO: Could a table be more appropriate for 
 					for pp in classProperties:
@@ -212,7 +217,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							
 						# If type is a class
 						else:
-							luaClassBindingOut += "\t\tretVal = %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
+							luaClassBindingOut += "\t\tlocal retVal = %s.%s_get_%s(self.__ptr)\n" % (libName, ckey, pp["name"])
 							luaClassBindingOut += template_returnPtrLookup("\t\t", template_quote(pp["type"]), "retVal")
 
 						# Generate C++ side of binding:
@@ -245,6 +250,10 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						pidx = pidx + 1
 
 					luaClassBindingOut += "\tend\n"
+					if inherits:
+						luaClassBindingOut += "\tif %s[\"__getvar\"] ~= nil then\n" % (parentClass)
+						luaClassBindingOut += "\t\treturn %s.__getvar(self, name)\n" % (parentClass)
+						luaClassBindingOut += "\tend\n"
 					luaClassBindingOut += "end\n"
 
 				luaClassBindingOut += "\n\n"
@@ -252,7 +261,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				# Iterate over properties again, creating setters
 				pidx = 0 # Def: Count of 
 				if len(classProperties) > 0: # If there are properties, add index setter to the metatable
-					luaClassBindingOut += "function %s:__set_callback(name,value)\n" % ckey
+					luaClassBindingOut += "function %s:__setvar(name,value)\n" % ckey
 					for pp in classProperties:
 						pp["type"] = typeFilter(pp["type"])
 						
@@ -290,7 +299,14 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						# Notice: Setters for object types are not created.
 					if pidx != 0:
 						luaClassBindingOut += "\tend\n"
-					luaClassBindingOut += "\treturn false\n"
+					if inherits:
+						luaClassBindingOut += "\tif %s[\"__setvar\"] ~= nil then\n" % (parentClass)
+						luaClassBindingOut += "\t\treturn %s.__setvar(self, name, value)\n" % (parentClass)
+						luaClassBindingOut += "\telse\n"
+						luaClassBindingOut += "\t\treturn false\n"
+						luaClassBindingOut += "\tend\n"
+					else:
+						luaClassBindingOut += "\treturn false\n"
 					luaClassBindingOut += "end\n"
 
 				# Iterate over methods
@@ -326,7 +342,9 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						if pm["rtnType"].find("static ") == -1:
 							wrappersHeaderOut += "\tluaL_checktype(L, 1, LUA_TLIGHTUSERDATA);\n"
 							wrappersHeaderOut += "\t%s *inst = (%s*)lua_topointer(L, 1);\n" % (ckey, ckey)
-						idx = 2
+							idx = 2
+						else:
+							idx = 1
 					
 					if rawMethod:
 						wrappersHeaderOut += "\treturn inst->%s(L);\n" % (pm["name"])
@@ -440,7 +458,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 									outfunc = "lua_pushstring"
 									basicType = True
 									retFunc = ".c_str()"
-								if pm["rtnType"] == "int" or pm["rtnType"] == "static int" or  pm["rtnType"] == "size_t" or pm["rtnType"] == "static size_t" or pm["rtnType"] == "long" or pm["rtnType"] == "unsigned int" or pm["rtnType"] == "static long":
+								if pm["rtnType"] == "int" or pm["rtnType"] == "unsigned int" or pm["rtnType"] == "static int" or  pm["rtnType"] == "size_t" or pm["rtnType"] == "static size_t" or pm["rtnType"] == "long" or pm["rtnType"] == "unsigned int" or pm["rtnType"] == "static long":
 									outfunc = "lua_pushinteger"
 									basicType = True
 								if pm["rtnType"] == "bool" or pm["rtnType"] == "static bool" or pm["rtnType"] == "virtual bool":
@@ -475,9 +493,10 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						luaClassBindingOut += "end\n"
 					elif pm["name"] == ckey: # Constructors
 						luaClassBindingOut += "function %s:%s(...)\n" % (ckey, ckey)
+						luaClassBindingOut += "\tlocal arg = {...}\n"
 						if inherits:
 							luaClassBindingOut += "\tif type(arg[1]) == \"table\" and count(arg) == 1 then\n"
-							luaClassBindingOut += "\t\tif \"\"..arg[1]:class() == \"%s\" then\n" % (c["inherits"][0]["class"])
+							luaClassBindingOut += "\t\tif \"\"..arg[1].__classname == \"%s\" then\n" % (c["inherits"][0]["class"])
 							luaClassBindingOut += "\t\t\tself.__ptr = arg[1].__ptr\n"
 							luaClassBindingOut += "\t\t\treturn\n"
 							luaClassBindingOut += "\t\tend\n"
@@ -494,17 +513,18 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							luaClassBindingOut += "\t\tself.__ptr = %s.%s(self)\n" % (libName, ckey)
 						else:
 							luaClassBindingOut += "\t\tself.__ptr = %s.%s(unpack(arg))\n" % (libName, ckey)
-						luaClassBindingOut += "\t\t__ptr_lookup.%s[self.__ptr] = self\n" % (ckey)
+						luaClassBindingOut += "\t\t_G[\"__ptr_lookup\"].%s[self.__ptr] = self\n" % (ckey)
 						luaClassBindingOut += "\tend\n"
 						luaClassBindingOut += "end\n\n"
-					else: # Non-constructors.
-						luaClassBindingOut += "function %s:%s(%s)\n" % (ckey, pm["name"], ", ".join(paramlist))
+					else: # Non-constructors.						
 						if pm["rtnType"].find("static ") == -1: # Non-static method
+							luaClassBindingOut += "function %s:%s(%s)\n" % (ckey, pm["name"], ", ".join(paramlist))						
 							if len(lparamlist):
 								luaClassBindingOut += "\tlocal retVal = %s.%s_%s(self.__ptr, %s)\n" % (libName, ckey, pm["name"], ", ".join(lparamlist))
 							else:
 								luaClassBindingOut += "\tlocal retVal =  %s.%s_%s(self.__ptr)\n" % (libName, ckey, pm["name"])
 						else: # Static method
+							luaClassBindingOut += "function %s.%s(%s)\n" % (ckey, pm["name"], ", ".join(paramlist))
 							if len(lparamlist):
 								luaClassBindingOut += "\tlocal retVal = %s.%s_%s(%s)\n" % (libName, ckey, pm["name"], ", ".join(lparamlist))
 							else:
@@ -532,18 +552,20 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 				wrappersHeaderOut += "\treturn 0;\n"
 				wrappersHeaderOut += "}\n\n"
 
-				# Delete method (Lua side)
+				
 				luaClassBindingOut += "\n\n"
-				luaClassBindingOut += "if not __ptr_lookup then __ptr_lookup = {} end\n"
-				luaClassBindingOut += "__ptr_lookup.%s = {}\n\n" % (ckey)
+				luaClassBindingOut += "if not _G[\"__ptr_lookup\"] then _G[\"__ptr_lookup\"] = {} end\n"
+				luaClassBindingOut += "_G[\"__ptr_lookup\"].%s = {}\n\n" % (ckey)
+				
+				# Delete method (Lua side)
 				luaClassBindingOut += "function %s:__delete()\n" % (ckey)
-				luaClassBindingOut += "\t__ptr_lookup.%s[self.__ptr] = nil\n" % (ckey)
+				luaClassBindingOut += "\t_G[\"__ptr_lookup\"].%s[self.__ptr] = nil\n" % (ckey)
 				luaClassBindingOut += "\t%s.delete_%s(self.__ptr)\n" % (libName, ckey)
 				luaClassBindingOut += "end\n"
 				if ckey == "EventHandler": # See LuaEventHandler above
 					luaClassBindingOut += "\n\n"
 					luaClassBindingOut += "function EventHandler:__handleEvent(event)\n"
-					luaClassBindingOut += "\tevt = Event(\"__skip_ptr__\")\n"
+					luaClassBindingOut += "\tevt = _G[\"Event\"](\"__skip_ptr__\")\n"
 					luaClassBindingOut += "\tevt.__ptr = event\n"
 					luaClassBindingOut += "\tself:handleEvent(evt)\n"
 					#luaClassBindingOut += "\tself:handleEvent(event)\n"

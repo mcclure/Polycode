@@ -32,13 +32,20 @@ class PolycodeImageEditor : public PolycodeEditor {
 	PolycodeImageEditor();
 	virtual ~PolycodeImageEditor();
 	
-	bool openFile(String filePath);
+	bool openFile(OSFileEntry filePath);
 	void Resize(int x, int y);
 	
 	protected:
 		ScreenImage *grid;
 	
-		ScreenImage *editorImage;
+		ScreenShape *editorImage;
+		
+		ScreenShape *leftShape;		
+		ScreenShape *rightShape;		
+		ScreenShape *topShape;		
+		ScreenShape *bottomShape;								
+		
+		Number aspectRatio;
 };
 
 class PolycodeImageEditorFactory : public PolycodeEditorFactory {

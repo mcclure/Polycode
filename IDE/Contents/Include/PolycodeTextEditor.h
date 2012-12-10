@@ -28,18 +28,69 @@
 
 using namespace Polycode;
 
+class FindBar : public UIElement {
+	public:
+		FindBar();
+		~FindBar();
+		
+		void setBarWidth(int width);
+		void onKeyDown(PolyKEY key, wchar_t charCode);
+		
+		UITextInput *findInput;
+		UITextInput *replaceInput;		
+		UIImageButton *closeButton;		
+		
+		UIImageButton *replaceAllButton;
+		
+	protected:
+		ScreenShape *barBg;
+		
+};
+
+class PolycodeSyntaxHighlighter : public UITextInputSyntaxHighlighter {
+	public:
+		PolycodeSyntaxHighlighter(String extension);
+		~PolycodeSyntaxHighlighter();
+	
+		bool contains(String part, std::vector<String> list);
+	
+		std::vector<SyntaxHighlightToken> parseText(String text);		
+		std::vector<SyntaxHighlightToken> parseLua(String text);
+		
+		Color colorScheme[16];
+				
+		
+	protected:
+	
+		std::vector<String> separators;
+		std::vector<String> keywords;		
+};
+
 class PolycodeTextEditor : public PolycodeEditor {
 public:
 	PolycodeTextEditor();
 	virtual ~PolycodeTextEditor();
 	
-	bool openFile(String filePath);
+	bool openFile(OSFileEntry filePath);
 	void Resize(int x, int y);
 	void saveFile();
 	
+	void handleEvent(Event *event);
+	
+	void hideFindBar();
+	void showFindBar();
+	
+	void highlightLine(unsigned int lineNumber);
+	
 protected:
 
+	FindBar *findBar;
+	
+	String lastFindString;
+
+	PolycodeSyntaxHighlighter *syntaxHighligher;
 	UITextInput *textInput;
+	
 };
 
 class PolycodeTextEditorFactory : public PolycodeEditorFactory {

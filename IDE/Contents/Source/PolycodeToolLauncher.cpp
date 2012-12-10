@@ -48,34 +48,46 @@ PolycodeToolLauncher::~PolycodeToolLauncher() {
 
 }
 
-String PolycodeToolLauncher::generateTempPath() {
-	return "/tmp/"+String::IntToString(rand() % 10000000);
+String PolycodeToolLauncher::generateTempPath(PolycodeProject *project) {
+	return "/tmp/"+project->getProjectName();
 }
 
 void PolycodeToolLauncher::buildProject(PolycodeProject *project, String destinationPath) {
+
+	PolycodeConsole::print("Building project: "+project->getProjectName() + "\n");	
+
+	project->saveFile();
+
 	String projectBasePath = project->getRootFolder();
 	String projectPath = project->getProjectFile();
+	
 	
 	String polycodeBasePath = CoreServices::getInstance()->getCore()->getDefaultWorkingDirectory();
 	
 	String command = "cd "+projectBasePath+" && "+polycodeBasePath+"/Standalone/Bin/polybuild  --config="+projectPath+" --out="+destinationPath;	
 	String ret = CoreServices::getInstance()->getCore()->executeExternalCommand(command);
-	PolycodeConsole::print(ret);	
+//	PolycodeConsole::print(ret);	
 
 }
 
-void PolycodeToolLauncher::runPolyapp(String polyappPath) {		
+void PolycodeToolLauncher::runPolyapp(String polyappPath) {
+
+	PolycodeConsole::clearBacktraces();
+		
 //	PolycodeRunner *runner = new PolycodeRunner(polyappPath);
 //	CoreServices::getInstance()->getCore()->createThread(runner);
-
+							
 #if defined(__APPLE__) && defined(__MACH__)
 	CocoaCore *cocoaCore = (CocoaCore*) CoreServices::getInstance()->getCore();
 
 	String polycodeBasePath = CoreServices::getInstance()->getCore()->getDefaultWorkingDirectory();
 	String command = polycodeBasePath+"/Standalone/Player/PolycodePlayer.app";
 	
-	cocoaCore->launchApplicationWithFile(command, polyappPath);
+//	cocoaCore->launchApplicationWithFile(command, polyappPath);
+	cocoaCore->openFileWithApplication(polyappPath, command);
 #else
+	PolycodeRunner *runner = new PolycodeRunner(polyappPath);
+	CoreServices::getInstance()->getCore()->createThread(runner);
 
 #endif
 

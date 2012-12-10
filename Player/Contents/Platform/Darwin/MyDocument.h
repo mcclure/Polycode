@@ -36,11 +36,22 @@ public:
 		PolycodeDebugEvent *debugEvent = (PolycodeDebugEvent*)event;		
 		switch(event->getEventCode()) {
 			case PolycodeDebugEvent::EVENT_ERROR:
-				[playerDocument handleDebugError: [NSString stringWithCString:debugEvent->errorString.c_str()] onLine: debugEvent->lineNumber];
+			{
+				String fullError = "Error in file: "+debugEvent->fileName+" on line "+String::IntToString(debugEvent->lineNumber)+"\n"+debugEvent->errorString+"\n\n Backtrace:\n\n";
+			
+				for(int i=0; i < debugEvent->backTrace.size(); i++) {
+					fullError += "In file "+debugEvent->backTrace[i].fileName + " on line " + String::IntToString(debugEvent->backTrace[i].lineNumber)+"\n";
+				}
+			
+				[playerDocument handleDebugError: [NSString stringWithCString:fullError.c_str()] onLine: debugEvent->lineNumber];
+			}
 				break;
 			case PolycodeDebugEvent::EVENT_PRINT:
 				[playerDocument printToConsole: [NSString stringWithCString:debugEvent->errorString.c_str()]];				
 				break;
+			case PolycodeDebugEvent::EVENT_CLOSE:
+				[playerDocument needToClosePlayer];
+			break;				
 			case PolycodeDebugEvent::EVENT_RESIZE:
 //				printf("RERERERERESIZE\n");
 //				[playerDocument resizeDocument: debugEvent->xRes withYRes: debugEvent->yRes];
@@ -61,11 +72,17 @@ public:
 	NSWindow *consoleWindow;
 	NSTextView *consoleTextView;
 	bool showingConsole;
+	bool playerRunning;
+	bool needsToClose;
+	
 }
 
 - (void) printToConsole: (NSString*) message;
 - (void) handleDebugError: (NSString*) error onLine:(int) lineNumber;
 - (IBAction) showConsoleWindow: (id) sender;
+
+- (void) destroyPlayer;
+- (void) needToClosePlayer;
 
 @property (assign) IBOutlet PolycodeView *mainView;
 @property (assign) IBOutlet NSWindow *consoleWindow;

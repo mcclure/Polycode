@@ -21,6 +21,7 @@
 */
 
 #include "PolycodeProjectManager.h"
+#include "PolycodeToolLauncher.h"
 
 PolycodeProjectManager::PolycodeProjectManager() {
 	activeProject = NULL;
@@ -34,6 +35,13 @@ PolycodeProjectManager::~PolycodeProjectManager() {
 
 
 PolycodeProject* PolycodeProjectManager::openProject(String path) {
+
+	for(int i=0; i < projects.size(); i++) {
+		if(projects[i]->getProjectFile() == path) {
+			return projects[i];
+		}
+	}	
+
 	printf("Opening project  %s\n", path.c_str());
 	
 	FILE *f = fopen(path.c_str(), "r");
@@ -45,9 +53,11 @@ PolycodeProject* PolycodeProjectManager::openProject(String path) {
 	
 	vector<String> bits = path.split("/");
 	
-	String projectPath = "";
-	for(int i=0; i < bits.size() - 1; i++) {
-		projectPath += "/"+bits[i];
+	String projectPath = bits[0];
+	if(bits.size() > 2) {
+		for(int i=1; i < bits.size() - 1; i++) {
+			projectPath += "/"+bits[i];
+		}
 	}
 	
 	vector<String> bits2 = bits[bits.size()-1].split(".");
@@ -76,6 +86,27 @@ int PolycodeProjectManager::removeProject(PolycodeProject *project) {
 	return 1;
 }
 
+PolycodeProject *PolycodeProjectManager::getProjectByProjectFile(String projectFile) {
+	for(int i=0; i < projects.size(); i++) {
+		if(projects[i]->getProjectFile() == projectFile) {
+			return projects[i];
+		}
+	}
+	return NULL;
+}
+
+void PolycodeProjectManager::setActiveProject(PolycodeProject* project) {
+	if(project != activeProject) {
+		
+		if(activeProject != NULL) {
+			CoreServices::getInstance()->getResourceManager()->removeArchive(activeProject->getRootFolder());		
+		}
+		
+		activeProject = project;
+		CoreServices::getInstance()->getResourceManager()->addArchive(project->getRootFolder());
+	}
+}
+
 void PolycodeProjectManager::createNewFile(String templatePath, String newFileName) {
 	if(activeFolder == "")
 		return;
@@ -102,3 +133,32 @@ void PolycodeProjectManager::createNewProject(String templateFolder, String proj
 	CoreServices::getInstance()->getCore()->moveDiskItem(projectLocation+"/"+projectName+"/template.polyproject",  projectLocation+"/"+projectName+"/"+projectName+".polyproject");
 	openProject(projectLocation+"/"+projectName+"/"+projectName+".polyproject");	
 }
+
+void PolycodeProjectManager::exportProject(PolycodeProject *project, String exportPath, bool macOS, bool windows, bool linux) {
+
+	String polycodeBasePath = CoreServices::getInstance()->getCore()->getDefaultWorkingDirectory();
+
+	String publishPath = polycodeBasePath+"/Standalone/Publish";
+	
+	String polyappPath = PolycodeToolLauncher::generateTempPath(project) + ".polyapp";
+	PolycodeToolLauncher::buildProject(project, polyappPath);	
+	
+	if(macOS) {
+		PolycodeConsole::print("Exporting Mac version to "+exportPath+"/Mac \n");
+		
+		CoreServices::getInstance()->getCore()->createFolder(exportPath+"/Mac");
+		
+		String appPath = exportPath+"/Mac/"+project->getProjectName()+".app";
+		
+		CoreServices::getInstance()->getCore()->createFolder(appPath);
+		CoreServices::getInstance()->getCore()->createFolder(appPath+"/Contents");
+		CoreServices::getInstance()->getCore()->createFolder(appPath+"/Contents/MacOS");
+		CoreServices::getInstance()->getCore()->copyDiskItem(publishPath+"/Mac/StandalonePlayer.app/Contents/MacOS/StandalonePlayer", appPath+"/Contents/MacOS/"+project->getProjectName());
+		CoreServices::getInstance()->getCore()->copyDiskItem(publishPath+"/Mac/StandalonePlayer.app/Contents/Resources", appPath+"/Contents/Resources");
+		CoreServices::getInstance()->getCore()->copyDiskItem(publishPath+"/Mac/StandalonePlayer.app/Contents/Info.plist", appPath+"/Contents/Info.plist");
+		CoreServices::getInstance()->getCore()->removeDiskItem(appPath+"/Contents/Resources/main.polyapp");
+		CoreServices::getInstance()->getCore()->copyDiskItem(polyappPath, appPath+"/Contents/Resources/main.polyapp");
+		
+	}
+}
+
