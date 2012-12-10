@@ -7,6 +7,12 @@ uniform sampler2D diffuse;
 uniform sampler2D normal_map;
 uniform sampler2D specular_map;
 
+uniform vec4 diffuse_color;
+uniform vec4 specular_color;
+uniform vec4 ambient_color;
+uniform float shininess;
+
+
 float calculateAttenuation(in int i, in float dist)
 {
     return(1.0 / (gl_LightSource[i].constantAttenuation +
@@ -15,9 +21,9 @@ float calculateAttenuation(in int i, in float dist)
 }
 
 void pointLight(in int i, in vec3 bump, in vec3 normal, in vec3 tangent, in vec3 binormal, in vec4 pos, inout vec4 diffuse, inout vec4 specular) {
-	vec4 color = gl_FrontMaterial.diffuse;
-	vec4 matspec = gl_FrontMaterial.specular;
-	float shininess = gl_FrontMaterial.shininess;
+	vec4 color = diffuse_color;
+	vec4 matspec = specular_color;
+	float shininess = shininess;
 	vec4 lightspec = gl_LightSource[i].specular;
 	vec4 lpos = gl_LightSource[i].position;
 	
@@ -52,9 +58,9 @@ void pointLight(in int i, in vec3 bump, in vec3 normal, in vec3 tangent, in vec3
 
 
 void spotLight(in int i, in vec3 bump, in vec3 normal, in vec3 tangent, in vec3 binormal, in vec4 pos, inout vec4 diffuse, inout vec4 specular) {
-	vec4 color = gl_FrontMaterial.diffuse;
-	vec4 matspec = gl_FrontMaterial.specular;
-	float shininess = gl_FrontMaterial.shininess;
+	vec4 color = diffuse_color;
+	vec4 matspec = specular_color;
+	float shininess = shininess;
 	vec4 lightspec = gl_LightSource[i].specular;
 	vec4 lpos = gl_LightSource[i].position;
 	
@@ -132,9 +138,9 @@ void main()
 		
     vec4 color = (diffuse_val  * texColor * vertexColor) +
                  (specular_val * 1.0)+
-                 (gl_FrontMaterial.ambient * texColor * vertexColor);
-//    color = clamp(color, 0.0, 1.0);
-    
+                 (ambient_color * texColor * vertexColor);
+
+
     // fog
 	const float LOG2 = 1.442695;
 	float z = gl_FragCoord.z / gl_FragCoord.w;
@@ -145,6 +151,8 @@ void main()
 				   LOG2 );
 
 	fogFactor = clamp(fogFactor, 0.0, 1.0);
-	gl_FragColor = mix(gl_Fog.color, color, fogFactor );    
-	gl_FragColor.a = 1.0;
+
+	color = mix(gl_Fog.color, color, fogFactor );
+    color.a = diffuse_color.a * texColor.a;	
+	gl_FragColor = color;
 }

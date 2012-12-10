@@ -31,6 +31,7 @@
 #include "PolycodeFrame.h"
 
 #include "PolycodeImageEditor.h"
+#include "PolycodeMaterialEditor.h"
 #include "PolycodeScreenEditor.h"
 #include "PolycodeFontEditor.h"
 #include "PolycodeTextEditor.h"
@@ -70,15 +71,21 @@ public:
 	void closeProject();	
 	void saveFile();
 	void findText();
-	
-	void refreshProject();
-	
 	void runProject();
+	void exportProject();
+	
+	// system callbacks
+	
+	void openProject(String projectFile);
+	
+	void refreshProject();	
 	
 	const static int EVENT_SHOW_MENU = 1;
 	
 	CocoaCore *core;	
-protected:	
+protected:
+
+	bool willRunProject;
 	PolycodeFrame *frame;
 	
 	PolycodeEditorManager *editorManager;

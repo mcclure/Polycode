@@ -299,6 +299,9 @@ static void dumpstack (lua_State *L) {
 		
 		L=lua_open();
 		
+		if(!L) {
+			printf("ASDASD");
+		}
 		/*
 		 luaopen_base(L);	// load basic libs (eg. print)
 		 luaopen_math(L);
@@ -652,6 +655,8 @@ void PolycodePlayer::loadFile(const char *fileName) {
 		Logger::log(fullPath.c_str());
 	}
 	
+	remoteDebuggerClient = NULL;
+	
 	if(useDebugger) {
 	
 			
@@ -693,6 +698,8 @@ void PolycodePlayer::handleEvent(Event *event) {
 		debuggerTimer->Pause(true);
 	}
 	
+	if(remoteDebuggerClient) {	
+	
 	if(event->getDispatcher() == remoteDebuggerClient) {
 		if(event->getEventCode() == Event::COMPLETE_EVENT) {
 			dispatchEvent(new PolycodeDebugEvent(), PolycodeDebugEvent::EVENT_CLOSE);
@@ -722,6 +729,7 @@ void PolycodePlayer::handleEvent(Event *event) {
 			}
 			break;			
 		}
+	}
 	}
 	
 	if(event->getDispatcher() == core) {

@@ -35,13 +35,23 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	CoreServices::getInstance()->getResourceManager()->addArchive("default.pak");
 	CoreServices::getInstance()->getResourceManager()->addDirResource("default");	
 
+	CoreServices::getInstance()->getResourceManager()->addArchive("hdr.pak");
+	CoreServices::getInstance()->getResourceManager()->addDirResource("hdr");	
+
+
 	CoreServices::getInstance()->getResourceManager()->addArchive("api.pak");
 
 	CoreServices::getInstance()->getConfig()->loadConfig("Polycode", RESOURCE_PATH"UIThemes/default/theme.xml");
-	CoreServices::getInstance()->getResourceManager()->addDirResource(RESOURCE_PATH"UIThemes/default/", false);
-	CoreServices::getInstance()->getResourceManager()->addDirResource(RESOURCE_PATH"Images/", false);	
+	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"UIThemes/default/");
+	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"Images/");	
+
+	CoreServices::getInstance()->getFontManager()->registerFont("section", "Fonts/LeagueGothic-Regular.otf");
 	
-	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_LINEAR);
+//	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_LINEAR);
+	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_NEAREST);
+	
+	willRunProject = false;
+
 		
 	printf("creating font editor\n"); 
 	
@@ -57,6 +67,7 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 
 	frame->textInputPopup->addEventListener(this, UIEvent::OK_EVENT);	
 	frame->newProjectWindow->addEventListener(this, UIEvent::OK_EVENT);
+	frame->exportProjectWindow->addEventListener(this, UIEvent::OK_EVENT);
 	frame->newFileWindow->addEventListener(this, UIEvent::OK_EVENT);	
 	frame->exampleBrowserWindow->addEventListener(this, UIEvent::OK_EVENT);
 	
@@ -72,24 +83,18 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	frame->getProjectBrowser()->addEventListener(this, PolycodeProjectBrowserEvent::SHOW_MENU);
 	
 	frame->Resize(core->getXRes(), core->getYRes());	
-	core->setVideoMode(1000, 700, false, false, 0, 0);
+	core->setVideoMode(1100, 700, false, false, 0, 0);
 	
 	debugger = new PolycodeRemoteDebugger(projectManager);
 	frame->console->setDebugger(debugger);
 	
 	editorManager->registerEditorFactory(new PolycodeImageEditorFactory());
+	editorManager->registerEditorFactory(new PolycodeMaterialEditorFactory());	
 	editorManager->registerEditorFactory(new PolycodeScreenEditorFactory());	
 	editorManager->registerEditorFactory(new PolycodeFontEditorFactory());
 	editorManager->registerEditorFactory(new PolycodeTextEditorFactory());
 	editorManager->registerEditorFactory(new PolycodeProjectEditorFactory(projectManager));
 		
-	
-	
-//	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"tomato.polyapp");
-	
-//	ScreenImage *img = new ScreenImage("tomato.png");
-//	screen->addChild(img);
-	
 	loadConfigFile();
 }
 
@@ -173,6 +178,13 @@ void PolycodeIDEApp::stopProject() {
 	}
 }
 
+void PolycodeIDEApp::exportProject() {
+	if(projectManager->getActiveProject()) {
+		frame->exportProjectWindow->resetForm();
+		frame->showModal(frame->exportProjectWindow);		
+	}	
+}
+
 void PolycodeIDEApp::runProject() {
 	printf("Running project...\n");
 	stopProject();
@@ -199,6 +211,10 @@ void PolycodeIDEApp::saveFile() {
 	if(editorManager->getCurrentEditor()) {
 		editorManager->getCurrentEditor()->saveFile();
 	}
+}
+
+void PolycodeIDEApp::openProject(String projectFile) {
+	projectManager->openProject(projectFile);
 }
 
 void PolycodeIDEApp::openFileInProject(PolycodeProject *project, String filePath) {
@@ -229,6 +245,7 @@ void PolycodeIDEApp::openFile(OSFileEntry file) {
 	} else {
 		editor = editorManager->createEditorForExtension(file.extension);
 		if(editor) {
+			editor->parentProject = projectManager->getActiveProject();
 			if(editor->openFile(file)) {
 				frame->addEditor(editor);					
 				frame->showEditor(editor);
@@ -313,7 +330,7 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 	
 	if(event->getDispatcher() == frame->playButton) {	
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::CLICK_EVENT) {
-			runProject();
+			willRunProject = true;
 		}
 	}
 
@@ -343,6 +360,14 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 			frame->hideModal();			
 		}
 	}	
+
+	if(event->getDispatcher() == frame->exportProjectWindow) {
+		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
+			projectManager->exportProject(projectManager->getActiveProject(), frame->exportProjectWindow->projectLocationInput->getText(), frame->exportProjectWindow->macCheckBox->isChecked(), frame->exportProjectWindow->winCheckBox->isChecked(), frame->exportProjectWindow->linCheckBox->isChecked());
+			frame->hideModal();			
+		}
+	}
+
 	
 	if(event->getDispatcher() == frame->newProjectWindow) {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
@@ -411,6 +436,11 @@ PolycodeIDEApp::~PolycodeIDEApp() {
 }
 
 bool PolycodeIDEApp::Update() {
+
+	if(willRunProject) {
+		willRunProject = false;
+		runProject();
+	}
 
 	if(debugger->isConnected()) {
 			frame->stopButton->visible = true;

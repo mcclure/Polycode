@@ -127,12 +127,18 @@ bool PolycodeProject::saveFile() {
 	configFile.root["defaultWidth"]->intVal = data.defaultWidth;
 	configFile.root["defaultHeight"]->intVal = data.defaultHeight;
 	configFile.root["entryPoint"]->stringVal = data.entryPoint;
+	configFile.root["entryPoint"]->type = ObjectEntry::STRING_ENTRY;
 	
 	ObjectEntry *color = configFile.root["backgroundColor"];
+	
 	(*color)["red"]->NumberVal = data.backgroundColorR;
+	(*color)["red"]->type = ObjectEntry::FLOAT_ENTRY;
+	
 	(*color)["green"]->NumberVal = data.backgroundColorG;
+	(*color)["green"]->type = ObjectEntry::FLOAT_ENTRY;
+		
 	(*color)["blue"]->NumberVal = data.backgroundColorB;
-
+	(*color)["blue"]->type = ObjectEntry::FLOAT_ENTRY;
 
 	if(configFile.root["modules"]) {
 		configFile.root["modules"]->Clear();
@@ -141,7 +147,8 @@ bool PolycodeProject::saveFile() {
 	for(int j=0; j < data.modules.size(); j++) {
 		if(!configFile.root["modules"]) {
 			configFile.root.addChild("modules");	
-		}		
+		}	
+		configFile.root["modules"]->type = ObjectEntry::ARRAY_ENTRY;	
 		configFile.root["modules"]->addChild("module", data.modules[j]);
 	}
 	

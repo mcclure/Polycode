@@ -111,7 +111,18 @@ void SceneMesh::setTexture(Texture *texture) {
 	ownsTexture = false;
 }
 
+void SceneMesh::clearMaterial() {
+	if(localShaderOptions)
+		delete localShaderOptions;
+	localShaderOptions = NULL;
+	this->material = NULL;
+}
+
 void SceneMesh::setMaterial(Material *material) {
+
+	if(this->material)
+		clearMaterial();
+	
 	if(!material)
 		return;
 		
