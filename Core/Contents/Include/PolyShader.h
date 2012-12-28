@@ -105,11 +105,15 @@ namespace Polycode {
 			String name;
 			void *data;
 		
-		// Convenience setters for Lua users
-		void setNumber(Number x) { memcpy(data, &x, sizeof(x)); }
+		// Convenience getters/setters for Lua users
+		Number getNumber()         { return *((Number *)data); }
+		Vector2 getVector2()       { return *((Vector2 *)data); }
+		Vector3 getVector3()       { return *((Vector3 *)data); }
+		Color getColor()           { return *((Color *)data); }
+		void setNumber(Number x)   { memcpy(data, &x, sizeof(x)); }
 		void setVector2(Vector2 x) { memcpy(data, &x, sizeof(x)); }
 		void setVector3(Vector3 x) { memcpy(data, &x, sizeof(x)); }
-		void setColor(Color x) { memcpy(data, &x, sizeof(x)); }
+		void setColor(Color x)     { memcpy(data, &x, sizeof(x)); }
 	};	
 	
 	class RenderTargetBinding {
