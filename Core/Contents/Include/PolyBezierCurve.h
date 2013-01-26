@@ -36,7 +36,7 @@ namespace Polycode {
 	* A curve point defined by 3 positions.
 	* @see BezierCurve
 	*/
-	class _PolyExport BezierPoint {
+	class _PolyExport BezierPoint : public PolyBase {
 		public:
 		
 		/**
@@ -75,7 +75,7 @@ namespace Polycode {
 		A bezier curve consists of control points, each having 3 points: one middle point and two 'handles'. The middle point is the actual position of the control point and the two side points serve as vectors defining how the curve curves towards the next control points.
 		
 	*/																																									
-	class _PolyExport BezierCurve {
+	class _PolyExport BezierCurve : public PolyBase {
 		public:
 			/** 
 			* Default constructor.
@@ -162,23 +162,33 @@ namespace Polycode {
 		* @return 3d point at specified position.
 		*/																				
 		Vector3 getPointBetween(Number a, BezierPoint *bp1, BezierPoint *bp2);
-			
+		
+		void clearControlPoints();
+		
 		/** 
 		* Rebuilds the height cache buffers for 2d height curves.
 		*/	
 		void rebuildBuffers();
+		
+		/**
+		* Removes (and deletes!) a gives point by pointer
+		*/
+		void removePoint(BezierPoint *point);
 
 		Number heightBuffer[BUFFER_CACHE_PRECISION];
+
+		BezierPoint *insertPoint;
 
 		std::vector<BezierPoint*> controlPoints;
 		std::vector<Number> distances;
 		
+		void recalculateDistances();		
 		
 		protected:
 		
 			bool buffersDirty;
 		
-			void recalculateDistances();
+
 	
 			
 	};

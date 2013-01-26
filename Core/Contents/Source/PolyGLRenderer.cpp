@@ -362,9 +362,15 @@ void OpenGLRenderer::drawVertexBuffer(VertexBuffer *buffer, bool enableColorBuff
 					break;
 			}
 			break;
-		case Mesh::LINE_MESH:
+		case Mesh::LINE_STRIP_MESH:
 			mode = GL_LINE_STRIP;
 			break;	
+		case Mesh::LINE_LOOP_MESH:
+			mode = GL_LINE_LOOP;
+			break;				
+		case Mesh::LINE_MESH:
+			mode = GL_LINES;
+			break;				
 		case Mesh::POINT_MESH:
 			mode = GL_POINTS;
 			break;
@@ -387,10 +393,12 @@ void OpenGLRenderer::enableScissor(bool val) {
 	} else {
 		glDisable(GL_SCISSOR_TEST);	
 	}
+	Renderer::enableScissor(val);
 }
 
 void OpenGLRenderer::setScissorBox(Polycode::Rectangle box) {
 	glScissor(box.x, yRes-box.y-box.h, box.w, box.h);
+	Renderer::setScissorBox(box);
 }
 
 void OpenGLRenderer::enableFog(bool enable) {
@@ -489,7 +497,7 @@ void OpenGLRenderer::_setOrthoMode(Number orthoSizeX, Number orthoSizeY) {
 	glLoadIdentity();	
 }
 
-void OpenGLRenderer::setOrthoMode(Number xSize, Number ySize) {
+void OpenGLRenderer::setOrthoMode(Number xSize, Number ySize, bool centered) {
 	
 	if(xSize == 0)
 		xSize = xRes;
@@ -504,7 +512,12 @@ void OpenGLRenderer::setOrthoMode(Number xSize, Number ySize) {
 		glDisable(GL_CULL_FACE);
 		glPushMatrix();
 		glLoadIdentity();
-		glOrtho(0.0f,xSize,ySize,0,-1.0f,1.0f);
+		
+		if(centered) {
+			glOrtho(-xSize*0.5,xSize*0.5,ySize*0.5,-ySize*0.5,-1.0f,1.0f);		
+		} else {
+			glOrtho(0.0f,xSize,ySize,0,-1.0f,1.0f);
+		}
 		orthoMode = true;
 	}
 	glMatrixMode(GL_MODELVIEW);	
@@ -537,7 +550,9 @@ void OpenGLRenderer::setPerspectiveMode() {
 }
 
 void OpenGLRenderer::BeginRender() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if(doClearBuffer) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 	glLoadIdentity();
 	currentTexture = NULL;
 }
@@ -1001,9 +1016,15 @@ void OpenGLRenderer::drawArrays(int drawType) {
 					break;
 			}
 			break;
-		case Mesh::LINE_MESH:
+		case Mesh::LINE_STRIP_MESH:
 			mode = GL_LINE_STRIP;
-			break;	
+			break;
+		case Mesh::LINE_LOOP_MESH:
+			mode = GL_LINE_LOOP;
+			break;								
+		case Mesh::LINE_MESH:
+			mode = GL_LINES;
+			break;				
 		case Mesh::POINT_MESH:
 			mode = GL_POINTS;
 		break;

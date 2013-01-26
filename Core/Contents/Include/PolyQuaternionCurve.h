@@ -36,7 +36,7 @@ namespace Polycode {
 		Quaternion q3;		
 	};	
 
-	class _PolyExport QuaternionCurve {
+	class _PolyExport QuaternionCurve : public PolyBase {
 		public:
 			QuaternionCurve(BezierCurve *wCurve, BezierCurve *xCurve, BezierCurve *yCurve, BezierCurve *zCurve);
 			virtual ~QuaternionCurve();
@@ -45,7 +45,7 @@ namespace Polycode {
 			Quaternion interpolate(unsigned int fromIndex, Number t, bool useShortestPath);
 						
 			void generatePointsFromCurves(BezierCurve *wCurve, BezierCurve *xCurve, BezierCurve *yCurve, BezierCurve *zCurve);
-			void recalcTangents(void);
+			void recalcTangents();
 		
 		protected:
 		

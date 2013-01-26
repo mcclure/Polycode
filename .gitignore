@@ -40,6 +40,7 @@ UserInterfaceState.*
 Player/Build/Mac OS X/Polycode Player.xcodeproj/project.xcworkspace/xcuserdata/ivansafrin.xcuserdatad/UserInterfaceState.xcuserstate
 
 /Bindings/Contents/LUA/API/Polycode/*.lua
+!/Bindings/Contents/LUA/API/Polycode/EventDispatcher.lua
 /Bindings/Contents/LUA/API/Polycode.lua
 /Bindings/Contents/LUA/API/api.pak
 /Bindings/Contents/LUA/Include/*.h
@@ -55,6 +56,11 @@ Player/Build/Mac OS X/Polycode Player.xcodeproj/project.xcworkspace/xcuserdata/i
 /Modules/Bindings/3DPhysics/API/Physics3D.lua
 /Modules/Bindings/3DPhysics/Include/*.h
 /Modules/Bindings/3DPhysics/Source/*.cpp
+
+/Modules/Bindings/UI/API/UI/*.lua
+/Modules/Bindings/UI/API/UI.lua
+/Modules/Bindings/UI/Include/*.h
+/Modules/Bindings/UI/Source/*.cpp
 
 /Player/Build
 /Standalone/Build
@@ -105,3 +111,10 @@ Core/Build/Mac OS X/PolyCore.xcodeproj/project.xcworkspace/xcuserdata/ivansafrin
 Player/Build/Mac OS X/Polycode Player.xcodeproj/project.xcworkspace/xcuserdata/ivansafrin.xcuserdatad/UserInterfaceState.xcuserstate
 
 Player/Build/Mac OS X/Polycode Player.xcodeproj/project.xcworkspace/xcuserdata/ivansafrin.xcuserdatad/UserInterfaceState.xcuserstate
+
+/Documentation/Lua/xml/*.xml
+
+/Documentation/Lua/html/*
+!/Documentation/Lua/html/css
+!/Documentation/Lua/html/images
+!/Documentation/Lua/html/js

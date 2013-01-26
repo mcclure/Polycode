@@ -36,6 +36,7 @@ THE SOFTWARE.
 #define CURSOR_CROSSHAIR 3
 #define CURSOR_RESIZE_LEFT_RIGHT 4
 #define CURSOR_RESIZE_UP_DOWN 5
+#define CURSOR_OPEN_HAND 6
 
 long getThreadID();
 
@@ -43,18 +44,18 @@ namespace Polycode {
 
 	class Renderer;
 
-	class _PolyExport CoreMutex {
+	class _PolyExport CoreMutex : public PolyBase {
 	public:
 		int mutexID;
 	};
 	
-	class _PolyExport CoreFileExtension {
+	class _PolyExport CoreFileExtension : public PolyBase {
 	public:
 		String extension;
 		String description;
 	};
 	
-	class _PolyExport PolycodeViewBase {
+	class _PolyExport PolycodeViewBase : public PolyBase {
 	public:
 		PolycodeViewBase() { windowData = NULL; }
 		virtual ~PolycodeViewBase(){}

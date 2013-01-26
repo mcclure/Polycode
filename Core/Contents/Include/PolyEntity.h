@@ -27,6 +27,7 @@
 #include "PolyQuaternion.h"
 #include "PolyColor.h"
 #include "PolyRectangle.h"
+#include "PolyEventDispatcher.h"
 #include <vector>
 
 namespace Polycode {
@@ -60,7 +61,7 @@ namespace Polycode {
 	/**
 	* Base class for both 2D and 3D objects in Polycode. It provides position and color transformations as well as hierarchy for all Polycode objects.
 	*/
-	class _PolyExport Entity {
+	class _PolyExport Entity : public EventDispatcher {
 		public:
 			Entity();
 			virtual ~Entity();
@@ -113,19 +114,15 @@ namespace Polycode {
 			*/
 			Matrix4 getConcatenatedMatrix();
 			
+			Matrix4 getConcatenatedMatrixRelativeTo(Entity *relativeEntity);
+			
 			/** 
 			* Returns Same as getConcatenatedMatrix(), but contains only roll information for rotation. Used internally for billboards.
 			@return Entity's concatenated roll matrix.
 			@see getConcatenatedMatrix()
 			*/			
 			Matrix4 getConcatenatedRollMatrix() const;
-			
-			/**
-			* Sets all of the individual transform properties from the matrix and rebuilds the transform matrix.
-			@param matrix 4x4 transform matrix to apply.
-			*/			
-			void setTransformByMatrix(const Matrix4& matrix);
-			
+						
 			/**
 			* Sets the transform matrix directly, without setting all of the individual transfrom properties of the entity.
 			@param matrix 4x4 transform matrix to apply.
@@ -508,6 +505,12 @@ namespace Polycode {
 			bool billboardRoll;
 			
 			/**
+			* If set to true, the entity will not be scaled by the modelview
+			* matrix when billboardMode is enabled
+			*/
+			bool billboardIgnoreScale;
+			
+			/**
 			* Normally, translucent textures do not affect the depth buffer, but if this flag is set to true, this entity's alpha channel is written to the depth buffer at a preset threshold. This flag is set to false by default.
 			*/			
 			bool alphaTest;
@@ -548,8 +551,7 @@ namespace Polycode {
 			bool depthTest;
 			
 			/**
-			* @param newBlendingMode New blending mode to set. Possible values are Renderer::BLEND_MODE_NORMAL, Renderer::BLEND_MODE_LIGHTEN, Renderer::BLEND_MODE_COLOR, Renderer::BLEND_MODE_PREMULTIPLIED, Renderer::BLEND_MODE_MULTIPLY. See the Renderer class for details on individual blending modes.
-			* @see Renderer
+			* Entity blending mode. Possible values are Renderer::BLEND_MODE_NORMAL, Renderer::BLEND_MODE_LIGHTEN, Renderer::BLEND_MODE_COLOR, Renderer::BLEND_MODE_PREMULTIPLIED, Renderer::BLEND_MODE_MULTIPLY. See the Renderer class for details on individual blending modes.
 			*/
 			int blendingMode;	
 			
@@ -593,11 +595,15 @@ namespace Polycode {
 			* @see Renderer			
 			*/
 			void setBlendingMode(int newBlendingMode);
-				
+			
+			Entity *getEntityById(String id, bool recursive);
+			std::vector<Entity*> getEntitiesByTag(String tag, bool recursive);
+						
 			Vector3 getChildCenter() const;
 			
 			std::vector <EntityProp> entityProps;
 			String getEntityProp(const String& propName);
+			void setEntityProp(const String& propName, const String& propValue);
 			
 			void doUpdates();				
 			virtual Matrix4 buildPositionMatrix();
@@ -614,8 +620,31 @@ namespace Polycode {
 			Vector3 position;
 			Vector3 scale;		
 			Rotation rotation;
+			
+			
+			bool editorOnly;
 	
+			/** @name Class and ID strings
+			*  These properties can be used to set and retrieve string-based ids and
+			* tags
+			*/
+			//@{			
+
+			String id;
+
+			unsigned int getNumTags() const;
+			String getTagAtIndex(unsigned int index) const;
+			bool hasTag(String tag) const;
+			
+			void clearTags();
+			void addTag(String tag); 
+
+
+
+			//@}		
 		protected:
+		
+			std::vector<String> tags;
 		
 			void checkTransformSetters();
 		

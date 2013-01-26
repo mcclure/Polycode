@@ -61,6 +61,7 @@
 #include "PolyScreenSprite.h"
 #include "PolyScreenLabel.h"
 #include "PolyScreenCurve.h"
+#include "PolyScreenEntityInstance.h"
 #include "PolyTexture.h"
 #include "PolyMaterial.h"
 #include "PolyMesh.h"
@@ -93,6 +94,7 @@
 #include "PolyServer.h"
 #include "PolyServerWorld.h"
 #include "PolySocket.h"
+#include "PolyGlobals.h"
 
 #ifdef _WINDOWS
 #include "PolyWinCore.h"

@@ -1,14 +1,52 @@
 
 for k,v in pairs(math) do _G[k]=v end for k,v in pairs(table) do _G[k]=v end
-_G["count"]=_G["getn"]
+_G["count"] = function(T)
+	local _count = 0
+	for _ in pairs(T) do _count = _count + 1 end
+	return _count
+end
+
+_G["same_c_class"] = function(a,b)
+	if a == nil or b == nil then return false end
+	if a.__ptr == nil or b.__ptr == nil then return false end
+	return __are_same_c_class(a.__ptr,b.__ptr)
+end
+
+_G["cast"] = function (c, T)
+	local ret = T("__skip_ptr__")
+	ret.__ptr = c.__ptr
+	return ret
+end
+
+function __is_table_kind_of(T,c)
+        local __baseclass = T
+        while __baseclass do
+                if __baseclass.__classname == c.__classname then
+                        return true
+                end
+                __baseclass = __baseclass.__baseclass
+        end
+        return false
+end
+
+_G["safe_cast"] = function(c, T)	
+	if c:isKindOfClass(T) or __is_table_kind_of(T,c) then
+		return _G["cast"](c, T)
+	end
+	return nil
+end
 
 _G["print"] = function(msg)
 	_G["debugPrint"](tostring(msg))
 end
 
-__core__services__instance = Polycore.CoreServices_getInstance()
+_G["__handleEvent"] = function(target, event)
+	evt = _G["Event"]("__skip_ptr__")
+	evt.__ptr = event
+	target.callback(target.listener, evt)
+end
 
-Polycore.__ptr_lookup = {}
+__core__services__instance = Polycore.CoreServices_getInstance()
 
 Services = {}
 
@@ -17,6 +55,9 @@ Services.Core.__ptr = Polycore.CoreServices_getCore(Polycore.CoreServices_getIns
 
 Services.Renderer = Renderer("__skip_ptr__")
 Services.Renderer.__ptr = Polycore.CoreServices_getRenderer(Polycore.CoreServices_getInstance())
+
+Services.Config = Config("__skip_ptr__")
+Services.Config.__ptr = Polycore.CoreServices_getConfig(Polycore.CoreServices_getInstance())
 
 Services.MaterialManager = MaterialManager("__skip_ptr__")
 Services.MaterialManager.__ptr = Polycore.CoreServices_getMaterialManager(Polycore.CoreServices_getInstance())

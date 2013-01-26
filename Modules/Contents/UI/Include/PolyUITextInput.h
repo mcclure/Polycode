@@ -60,6 +60,23 @@ namespace Polycode {
 			unsigned int type;
 	};
 	
+	class _PolyExport LineColorData {
+		public:
+			LineColorData(Color color, unsigned int rangeStart, unsigned int rangeEnd) {
+				this->color = color;
+				this->rangeStart = rangeStart;
+				this->rangeEnd = rangeEnd;
+			}
+			Color color;
+			unsigned int rangeStart;
+			unsigned int rangeEnd;
+	};
+	
+	class _PolyExport LineColorInfo {
+		public:
+			std::vector<LineColorData> colors;			
+	};
+	
 	class _PolyExport UITextInputSyntaxHighlighter {
 		public:		
 			virtual std::vector<SyntaxHighlightToken> parseText(String text) = 0;
@@ -87,6 +104,7 @@ namespace Polycode {
 			int insertLine(bool after);
 		
 			void changedText();
+			void applySyntaxFormatting();
 			
 			void onKeyDown(PolyKEY key, wchar_t charCode);
 		
@@ -102,6 +120,16 @@ namespace Polycode {
 			void Copy();
 			void Paste();
 			
+			void enableLineNumbers(bool val);
+			
+			void setBackgroundColor(Color color);
+			void setSelectionColor(Color color);
+			void setCursorColor(Color color);
+			void setTextColor(Color color);
+			void setLineNumberColor(Color color);
+			
+			void checkBufferLines();
+			
 			void replaceAll(String what, String withWhat);
 			
 			void findString(String stringToFind, bool replace=false, String replaceString="");
@@ -113,6 +141,7 @@ namespace Polycode {
 
 			void setSyntaxHighlighter(UITextInputSyntaxHighlighter *syntaxHighliter);
 					
+			bool isNumberOrCharacter(wchar_t charCode);
 			void Resize(Number width, Number height);
 			
 			void setNumberOnly(bool val);
@@ -123,8 +152,23 @@ namespace Polycode {
 			void insertText(String text);
 			
 			UIScrollContainer *getScrollContainer();
+			
+			bool useStrongHinting;
 		
 		protected:
+		
+			void readjustBuffer();
+
+			std::vector<LineColorInfo> lineColors;
+					
+			ScreenEntity *lineNumberAnchor;
+		
+			void renumberLines();
+		
+			bool lineNumbersEnabled;
+		
+			Color textColor;
+			Color lineNumberColor;
 				
 			void setUndoState(UITextInputUndoState state);
 			void saveUndoState();
@@ -142,7 +186,7 @@ namespace Polycode {
 			void selectWordAtCaret();
 		
 			void restructLines();
-			void removeLine(ScreenLabel *line);
+			void removeLines(unsigned int startIndex, unsigned int endIndex);
 		
 			ScreenShape *selectorRectTop;
 			ScreenShape *selectorRectMiddle;
@@ -157,7 +201,11 @@ namespace Polycode {
 			int selectionTop;
 			int selectionBottom;
 			int selectionL;
-			int selectionR;		
+			int selectionR;
+			
+			ScreenShape *lineNumberBg;
+			
+			int decoratorOffset;
 		
 			bool settingText;
 		
@@ -191,6 +239,9 @@ namespace Polycode {
 		
 			Number caretImagePosition;
 			
+			int currentBufferLines;
+			int neededBufferLines;
+			
 			UIScrollContainer *scrollContainer;
 		
 			String fontName;
@@ -199,8 +250,11 @@ namespace Polycode {
 			Number lineHeight;
 		
 			int lineOffset;
-			ScreenLabel *currentLine;		
-			vector<ScreenLabel*> lines;
+			
+			vector<String> lines;
+						
+			vector<ScreenLabel*> bufferLines;
+			vector<ScreenLabel*> numberLines;			
 			
 	};
 }

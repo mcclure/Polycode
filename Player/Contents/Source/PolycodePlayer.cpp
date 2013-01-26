@@ -129,7 +129,7 @@ static void dumpstack (lua_State *L) {
 		defaultPath.append(module);
 		
 		const char* fullPath = module.c_str();		
-		Logger::log("Loading custom class: %s\n", module.c_str());
+//		Logger::log("Loading custom class: %s\n", module.c_str());
 		OSFILE *inFile = OSBasics::open(module, "r");	
 		
 		if(!inFile) {
@@ -143,7 +143,9 @@ static void dumpstack (lua_State *L) {
 			char *buffer = (char*)malloc(progsize+1);
 			memset(buffer, 0, progsize+1);
 			OSBasics::read(buffer, progsize, 1, inFile);
-			luaL_loadbuffer(pState, (const char*)buffer, progsize, fullPath);		
+	
+			PolycodePlayer *player = (PolycodePlayer*)CoreServices::getInstance()->getCore()->getUserPointer();	
+			player->report(pState, luaL_loadbuffer(pState, (const char*)buffer, progsize, fullPath));		
 			//free(buffer);
 			OSBasics::close(inFile);	
 		} else {
@@ -166,7 +168,6 @@ static void dumpstack (lua_State *L) {
 		int depth = 0;		
 		while (lua_getstack(L, depth, &entry)) {
 			lua_getinfo(L, "Sln", &entry);
-			printf(">>>> %s(%d): %s\n", entry.short_src, entry.currentline, entry.name ? entry.name : "?");
 			std::vector<String> bits = String(entry.short_src).split("\"");
 			if(bits.size() > 1) {
 				String fileName = bits[1];
@@ -177,6 +178,7 @@ static void dumpstack (lua_State *L) {
 					trace.fileName = fileName;
 					backTrace.push_back(trace);
 					
+					printf(">>>> In file: %s on line %d\n", fileName.c_str(), trace.lineNumber);
 					//backTrace += "In file: " + fileName + " on line " + String::IntToString(entry.currentline)+"\n";
 				}
 			}
@@ -232,6 +234,20 @@ static void dumpstack (lua_State *L) {
 		return 0;
 	}
 	
+	static int areSameCClass(lua_State *L) {
+		luaL_checktype(L, 1, LUA_TUSERDATA);
+		PolyBase *classOne = *((PolyBase**)lua_touserdata(L, 1));
+		luaL_checktype(L, 2, LUA_TUSERDATA);
+		PolyBase *classTwo = *((PolyBase**)lua_touserdata(L, 2));
+		
+		if(classOne == classTwo) {
+			lua_pushboolean(L, true);
+		} else {
+			lua_pushboolean(L, false);		
+		}		
+		return 1;
+	}
+	
 	static int debugPrint(lua_State *L)
 	{
 		const char *msg = lua_tostring(L, 1);
@@ -253,14 +269,14 @@ static void dumpstack (lua_State *L) {
 		
 		PolycodePlayer *player = (PolycodePlayer*)CoreServices::getInstance()->getCore()->getUserPointer();					
 			
-		Logger::log("Error status: %d\n", status);
+//		Logger::log("Error status: %d\n", status);
 		if (status) {		
 		
 			std::vector<BackTraceEntry> backTrace;
 					
 			msg = lua_tostring(L, -1);
 			if (msg == NULL) msg = "(error with no message)";
-			Logger::log("status=%d, %s\n", status, msg);
+			Logger::log("status=%d, (%s)\n", status, msg);
 			lua_pop(L, 1);
 			
 			std::vector<String> info = String(msg).split(":");
@@ -271,9 +287,12 @@ static void dumpstack (lua_State *L) {
 			if(info.size() > 2) {
 				event->errorString = info[2];
 				event->lineNumber = atoi(info[1].c_str());
-				event->fileName = player->fullPath; 
+				event->fileName = info[0].replace("string ", "").replace("\"", "").replace("[", "").replace("]", "");
+				
 				trace.lineNumber = event->lineNumber;
 				trace.fileName = event->fileName;
+				
+				printf(">>>> In file: %s on line %d\n", trace.fileName.c_str(), trace.lineNumber);				
 			} else {
 				event->errorString = std::string(msg);
 				event->lineNumber = 0;
@@ -292,6 +311,7 @@ static void dumpstack (lua_State *L) {
 		}
 		return status;
 	}	
+
 	
 	void PolycodePlayer::runFile(String fileName) {
 		
@@ -299,23 +319,10 @@ static void dumpstack (lua_State *L) {
 		
 		L=lua_open();
 		
-		if(!L) {
-			printf("ASDASD");
-		}
-		/*
-		 luaopen_base(L);	// load basic libs (eg. print)
-		 luaopen_math(L);
-		 luaopen_table(L);
-		 luaopen_package(L);
-		 */
-		luaL_openlibs(L);
-		
-		luaopen_debug(L);
-		
+		luaL_openlibs(L);		
+		luaopen_debug(L);		
 		luaopen_Polycode(L);
-		//luaopen_Tau(L);	// load the wrappered module
-		
-		
+
 		lua_getfield(L, LUA_GLOBALSINDEX, "package");	// push "package"
 		lua_getfield(L, -1, "loaders");					// push "package.loaders"
 		lua_remove(L, -2);								// remove "package"
@@ -338,8 +345,10 @@ static void dumpstack (lua_State *L) {
 		// Table is still on the stack.  Get rid of it now.
 		lua_pop(L, 1);		
 		
-		lua_register(L, "debugPrint", debugPrint);	
+		lua_register(L, "debugPrint", debugPrint);
 		lua_register(L, "__customError", customError);					
+
+		lua_register(L, "__are_same_c_class", areSameCClass);
 		
 		lua_getfield(L, LUA_GLOBALSINDEX, "require");
 		lua_pushstring(L, "class");		
@@ -352,7 +361,7 @@ static void dumpstack (lua_State *L) {
 		lua_getfield(L, LUA_GLOBALSINDEX, "require");
 		lua_pushstring(L, "defaults");		
 		lua_call(L, 1, 0);
-		
+				
 		for(int i=0; i < loadedModules.size(); i++) {
 			String moduleName = loadedModules[i];
 #ifdef _WINDOWS
@@ -380,12 +389,13 @@ static void dumpstack (lua_State *L) {
 			lua_pushstring(L, moduleDestPath.c_str());
 			lua_pushstring(L, moduleLoadCall.c_str());			
 			lua_call(L, 2, 2);
+			
 			lua_setfield(L, LUA_GLOBALSINDEX, "err");								
 			lua_setfield(L, LUA_GLOBALSINDEX, "f");		
 
-			lua_getfield(L, LUA_GLOBALSINDEX, "print");
-			lua_getfield(L, LUA_GLOBALSINDEX, "err");						
-			lua_call(L, 1, 0);						
+//			lua_getfield(L, LUA_GLOBALSINDEX, "print");
+//			lua_getfield(L, LUA_GLOBALSINDEX, "err");						
+//			lua_call(L, 1, 0);						
 
 			printf("SETTING CORE SERVICES\n");			
 			lua_getfield(L, LUA_GLOBALSINDEX, "f");
@@ -478,6 +488,8 @@ void PolycodePlayer::loadFile(const char *fileName) {
 	Number green = 0.2f;
 	Number blue = 0.2f;
 	
+	String textureFiltering = "linear";
+	
 	frameRate = 60;
 	
 	Object configFile;
@@ -535,7 +547,12 @@ void PolycodePlayer::loadFile(const char *fileName) {
 		}		
 		if(configFile.root["fullScreen"]) {
 			fullScreen = configFile.root["fullScreen"]->boolVal;
+		}				
+		if(configFile.root["textureFiltering"]) {
+			textureFiltering = configFile.root["textureFiltering"]->stringVal;
 		}		
+	
+		
 		if(configFile.root["backgroundColor"]) {
 			ObjectEntry *color = configFile.root["backgroundColor"];
 			if((*color)["red"] && (*color)["green"] && (*color)["blue"]) {
@@ -545,6 +562,21 @@ void PolycodePlayer::loadFile(const char *fileName) {
 				
 			}			
 		}
+		
+		ObjectEntry *fonts = configFile.root["fonts"];
+		if(fonts) {
+			for(int i=0; i < fonts->length; i++) {			
+				ObjectEntry *fontName = (*(*fonts)[i])["name"];				
+				ObjectEntry *fontPath = (*(*fonts)[i])["path"];
+				
+				if(fontName && fontPath) {
+					printf("REGISTERING FONT %s %s\n", fontName->stringVal.c_str(), fontPath->stringVal.c_str());
+					CoreServices::getInstance()->getFontManager()->registerFont(fontName->stringVal, fontPath->stringVal);
+				}
+
+			}
+		}
+		
 		ObjectEntry *modules = configFile.root["modules"];			
 		if(modules) {
 			for(int i=0; i < modules->length; i++) {			
@@ -635,7 +667,13 @@ void PolycodePlayer::loadFile(const char *fileName) {
 	core->setUserPointer(this);
 	//core->addEventListener(this, Core::EVENT_CORE_RESIZE);
 	core->setVideoMode(xRes, yRes, fullScreen, false, 0, aaLevel);
-		
+	
+	if(textureFiltering == "nearest") {
+		CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_NEAREST);
+	} else {
+		CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_LINEAR);
+	}
+				
 	CoreServices::getInstance()->getResourceManager()->addArchive("default.pak");
 	CoreServices::getInstance()->getResourceManager()->addDirResource("default", false);
 
@@ -803,7 +841,7 @@ void PolycodePlayer::handleEvent(Event *event) {
 
 bool PolycodePlayer::Update() {
 	if(L) {
-				
+		lua_settop(L, 0);				
 		if(doCodeInject) {
 			printf("INJECTING CODE:[%s]\n", injectCodeString.c_str());
 			doCodeInject = false;			

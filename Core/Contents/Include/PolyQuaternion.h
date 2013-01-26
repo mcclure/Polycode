@@ -30,7 +30,7 @@ namespace Polycode {
 	/**
 	* Rotation quaternion.
 	*/
-	class _PolyExport Quaternion {
+	class _PolyExport Quaternion : public PolyBase {
 		public:
 		
 			/**
@@ -95,7 +95,7 @@ namespace Polycode {
 	Quaternion Log () const;
     Quaternion Exp () const;	
     Number Norm () const;
-    Number normalize(void);	
+    Number normalize();	
     Quaternion operator+ (const Quaternion& rkQ) const;
     Quaternion operator* (const Quaternion& rkQ) const;
     Quaternion operator* (Number fScalar) const;

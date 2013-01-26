@@ -54,18 +54,6 @@ UITree::UITree(String icon, String text, Number treeWidth, Number treeOffset) : 
 								fontName,
 								Label::ANTIALIAS_FULL);
 
-/*	
-	Number st = conf->getNumericValue("Polycode", "uiTreeCellSkinT");
-	Number sr = conf->getNumericValue("Polycode", "uiTreeCellSkinR");
-	Number sb = conf->getNumericValue("Polycode", "uiTreeCellSkinB");
-	Number sl = conf->getNumericValue("Polycode", "uiTreeCellSkinL");	
-	
-	Number padding = conf->getNumericValue("Polycode", "uiTreeCellSkinPadding");	
-	
-	bgBox = new UIBox(conf->getStringValue("Polycode", "uiTreeCellSkin"),
-						  st,sr,sb,sl,
-						  treeWidth+(padding*2), cellHeight+(padding*2));	
-	*/
 	bgBox = new ScreenShape(ScreenShape::SHAPE_RECT, treeWidth, cellHeight);	
 	bgBox->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
 	bgBox->setPosition(-treeOffset,0);	
@@ -96,8 +84,8 @@ UITree::UITree(String icon, String text, Number treeWidth, Number treeOffset) : 
 	addChild(iconImage);
 	iconImage->setPosition(arrowIconImage->getWidth()+(cellPadding*2),(cellHeight-iconImage->getHeight())/2.0f);
 
-	addChild(textLabel);	
-	textLabel->setPosition(arrowIconImage->getWidth()+iconImage->getWidth()+(cellPadding*3),(int)((cellHeight-(textLabel->getHeight()-6))/2.0f));
+	addChild(textLabel);
+	textLabel->setPosition(arrowIconImage->getWidth()+iconImage->getWidth()+(cellPadding*3),(int)((cellHeight-(textLabel->getLabel()->getSize()))/2.0f) - 2);
 	collapsed = false;
 	treeHeight = 0;
 	toggleCollapsed();	
@@ -107,6 +95,7 @@ UITree::UITree(String icon, String text, Number treeWidth, Number treeOffset) : 
 	selectedNode = NULL;
 	arrowIconImage->addEventListener(this, InputEvent::EVENT_MOUSEDOWN);
 	arrowIconImage->processInputEvents = true;
+	
 	
 	bgBox->addEventListener(this, InputEvent::EVENT_MOUSEUP);
 	bgBox->addEventListener(this, InputEvent::EVENT_MOUSEUP_OUTSIDE);	
@@ -118,6 +107,7 @@ UITree::UITree(String icon, String text, Number treeWidth, Number treeOffset) : 
 	setPositionMode(ScreenEntity::POSITION_CENTER);
 	
 	refreshTree();
+	ownsChildren = true;
 }
 
 void UITree::Resize(Number width) {
@@ -147,7 +137,7 @@ void UITree::removeTreeChild(UITree *child) {
 			child->removeEventListener(this, UITreeEvent::SELECTED_EVENT);
 			child->removeEventListener(this, UITreeEvent::EXECUTED_EVENT);
 			child->removeEventListener(this, UITreeEvent::DRAG_START_EVENT);			
-			treeChildren.erase(treeChildren.begin()+i);			
+			treeChildren.erase(treeChildren.begin()+i);
 			delete child;
 			refreshTree();			
 			return;
@@ -180,8 +170,9 @@ void UITree::handleEvent(Event *event) {
 				isDragging = false;			
 			break;			
 			case InputEvent::EVENT_MOUSEDOWN:	
-				willDrag = true;
-				mouseDownPosition = ((InputEvent*)event)->mousePosition;				
+				setSelected();			
+//				willDrag = true;
+//				mouseDownPosition = ((InputEvent*)event)->mousePosition;				
 			break;			
 			case InputEvent::EVENT_MOUSEMOVE:
 				if(willDrag && !isDragging && ((InputEvent*)event)->mousePosition.distance(mouseDownPosition) > 5) {
@@ -293,15 +284,19 @@ void UITree::toggleCollapsed() {
 }
 
 UITree::~UITree() {
+	clearTree();
+}
+
+void UITree::clearTree() {
 	for(int i=0; i < treeChildren.size(); i++) {
 		UITree *child = treeChildren[i];
 		removeChild(child);
 		child->removeEventListener(this, UITreeEvent::NEED_REFRESH_EVENT);
 		child->removeEventListener(this, UITreeEvent::SELECTED_EVENT);
-		child->removeEventListener(this, UITreeEvent::EXECUTED_EVENT);
-		//treeChildren.erase(treeChildren.begin()+i);			
+		child->removeEventListener(this, UITreeEvent::EXECUTED_EVENT);	
 		delete child;
 	}
+	treeChildren.clear();
 }
 
 void UITree::Update() {

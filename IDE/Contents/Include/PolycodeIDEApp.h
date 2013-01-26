@@ -36,6 +36,7 @@
 #include "PolycodeFontEditor.h"
 #include "PolycodeTextEditor.h"
 #include "PolycodeProjectEditor.h"
+#include "PolycodeSpriteEditor.h"
 
 #include "PolycodeToolLauncher.h"
 
@@ -63,16 +64,22 @@ public:
 	// menu commands
 	void renameFile();
 	void removeFile();
+	void doRemoveFile();
 	void browseExamples();
 	void newProject();
-	void newFile();	
+	void newFile();
+	
+	void openDocs();
+	
+	void addFiles();
+	
 	void newGroup();
 	void openProject();
 	void closeProject();	
 	void saveFile();
 	void findText();
 	void runProject();
-	void exportProject();
+	void exportProject();	
 	
 	// system callbacks
 	

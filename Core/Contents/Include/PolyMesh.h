@@ -31,13 +31,13 @@ namespace Polycode {
 	
 	class String;
 
-	class _PolyExport VertexSorter {
+	class _PolyExport VertexSorter : public PolyBase {
 		public:
 			Vertex *target;
 			bool operator() (Vertex *v1,Vertex *v2) { return (v1->distance(*target)<v2->distance(*target));}
 	};	
 	
-	class _PolyExport VertexBuffer {
+	class _PolyExport VertexBuffer : public PolyBase {
 		public:	
 			VertexBuffer(){}
 			virtual ~VertexBuffer(){}
@@ -54,7 +54,7 @@ namespace Polycode {
 	/**
 	* Render data array.
 	*/
-	class _PolyExport RenderDataArray {
+	class _PolyExport RenderDataArray : public PolyBase {
 	public:		
 		int arrayType;
 		int stride;
@@ -113,7 +113,7 @@ namespace Polycode {
 	/**
 	* A polygonal mesh. The mesh is assembled from Polygon instances, which in turn contain Vertex instances. This structure is provided for convenience and when the mesh is rendered, it is cached into vertex arrays with no notions of separate polygons. When data in the mesh changes, arrayDirtyMap must be set to true for the appropriate array types (color, position, normal, etc). Available types are defined in RenderDataArray.
 	*/
-	class _PolyExport Mesh {
+	class _PolyExport Mesh : public PolyBase {
 		public:
 		
 			
@@ -288,6 +288,9 @@ namespace Polycode {
 			*/ 
 			void setMeshType(int newType);
 
+			void dirtyArray(unsigned int arrayIndex);
+			void dirtyArrays();
+
 			/**
 			* Calculates the mesh bounding box.
 			*/
@@ -330,6 +333,17 @@ namespace Polycode {
 			static const int POINT_MESH = 5;
 		
 			/**
+			* Line strip based mesh.
+			*/									
+			static const int LINE_STRIP_MESH = 6;
+			
+			/**
+			* Line loop based mesh.
+			*/									
+			static const int LINE_LOOP_MESH = 7;
+		
+		
+			/**
 			* Render array dirty map. If any of these are flagged as dirty, the renderer will rebuild them from the mesh data. See RenderDataArray for types of render arrays.
 			* @see RenderDataArray
 			*/
@@ -345,6 +359,7 @@ namespace Polycode {
 			* If set to true, the renderer will use the vertex colors instead of entity color transform to render this mesh.
 			*/
 			bool useVertexColors;
+			
 		
 		protected:
 					

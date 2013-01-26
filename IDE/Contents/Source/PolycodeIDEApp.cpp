@@ -25,8 +25,11 @@
 
 using namespace Polycode;
 
+UIGlobalMenu *globalMenu;
+SyntaxHighlightTheme *globalSyntaxTheme;
+
 PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
-	core = new CocoaCore(view, 900,700,false,true, 0, 0,60);	
+	core = new CocoaCore(view, 900,700,false,true, 0, 0,30);	
 	core->addEventListener(this, Core::EVENT_CORE_RESIZE);	
 	CoreServices::getInstance()->getRenderer()->setClearColor(0.2,0.2,0.2);
 	
@@ -41,12 +44,14 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 
 	CoreServices::getInstance()->getResourceManager()->addArchive("api.pak");
 
-	CoreServices::getInstance()->getConfig()->loadConfig("Polycode", RESOURCE_PATH"UIThemes/default/theme.xml");
-	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"UIThemes/default/");
-	CoreServices::getInstance()->getResourceManager()->addArchive(RESOURCE_PATH"Images/");	
+	CoreServices::getInstance()->getConfig()->loadConfig("Polycode", "UIThemes/default/theme.xml");
+	CoreServices::getInstance()->getResourceManager()->addArchive("UIThemes/default/");
+	CoreServices::getInstance()->getResourceManager()->addArchive("Images/");	
 
-	CoreServices::getInstance()->getFontManager()->registerFont("section", "Fonts/LeagueGothic-Regular.otf");
-	
+	CoreServices::getInstance()->getFontManager()->registerFont("section", "Fonts/LeagueGothic-Regular.otf");	
+
+	CoreServices::getInstance()->getFontManager()->registerFont("editor_font", "Fonts/Inconsolata.otf");
+
 //	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_LINEAR);
 	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_NEAREST);
 	
@@ -56,7 +61,7 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	printf("creating font editor\n"); 
 	
 	Screen *screen = new Screen();	
-	screen->snapToPixelsByDefault = true;
+	screen->rootEntity.setDefaultScreenOptions(true);
 	
 	editorManager = new PolycodeEditorManager();
 	
@@ -66,6 +71,8 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	frame->console->backtraceWindow->addEventListener(this, BackTraceEvent::EVENT_BACKTRACE_SELECTED);
 
 	frame->textInputPopup->addEventListener(this, UIEvent::OK_EVENT);	
+	frame->yesNoPopup->addEventListener(this, UIEvent::OK_EVENT);
+	
 	frame->newProjectWindow->addEventListener(this, UIEvent::OK_EVENT);
 	frame->exportProjectWindow->addEventListener(this, UIEvent::OK_EVENT);
 	frame->newFileWindow->addEventListener(this, UIEvent::OK_EVENT);	
@@ -73,14 +80,17 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	
 	frame->playButton->addEventListener(this, UIEvent::CLICK_EVENT);
 	frame->stopButton->addEventListener(this, UIEvent::CLICK_EVENT);
-		
+
 	screen->addChild(frame);
+
 	
 	projectManager = new PolycodeProjectManager();
 	projectManager->setProjectBrowser(frame->getProjectBrowser());
 	
+	frame->projectManager = projectManager;
+	
 	frame->getProjectBrowser()->addEventListener(this, Event::CHANGE_EVENT);
-	frame->getProjectBrowser()->addEventListener(this, PolycodeProjectBrowserEvent::SHOW_MENU);
+	frame->getProjectBrowser()->addEventListener(this, PolycodeProjectBrowserEvent::HANDLE_MENU_COMMAND);
 	
 	frame->Resize(core->getXRes(), core->getYRes());	
 	core->setVideoMode(1100, 700, false, false, 0, 0);
@@ -94,23 +104,39 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	editorManager->registerEditorFactory(new PolycodeFontEditorFactory());
 	editorManager->registerEditorFactory(new PolycodeTextEditorFactory());
 	editorManager->registerEditorFactory(new PolycodeProjectEditorFactory(projectManager));
+	editorManager->registerEditorFactory(new PolycodeSpriteEditorFactory());
+
 		
+	globalMenu	= new UIGlobalMenu();
+	screen->addChild(globalMenu);	
+				
 	loadConfigFile();
+	frame->console->applyTheme();
 }
 
 void PolycodeIDEApp::renameFile() {
 	if(projectManager->selectedFile != "") {
+		frame->textInputPopup->action = "renameFile";
+		frame->textInputPopup->setCaption("Enter new filename");
 		frame->textInputPopup->setValue(projectManager->selectedFileEntry.name);
 		frame->showModal(frame->textInputPopup);
 	}
 }
 
-void PolycodeIDEApp::removeFile() {
+void PolycodeIDEApp::doRemoveFile() {
 	if(projectManager->selectedFile != "") {
 		core->removeDiskItem(projectManager->selectedFile);
 		if(projectManager->getActiveProject()) {
 			frame->projectBrowser->refreshProject(projectManager->getActiveProject());
 		}
+	}
+}
+
+void PolycodeIDEApp::removeFile() {
+	if(projectManager->selectedFile != "") {
+		frame->yesNoPopup->setCaption("Are you sure you want to remove this file?");
+		frame->yesNoPopup->action = "removeFile";
+		frame->showModal(frame->yesNoPopup);
 	}
 }
 
@@ -142,10 +168,10 @@ void PolycodeIDEApp::closeProject() {
 
 void PolycodeIDEApp::newGroup() {
 	if(projectManager->activeFolder != "") {
-		core->createFolder(projectManager->activeFolder+"/New Folder");
-		if(projectManager->getActiveProject()) {
-			frame->getProjectBrowser()->refreshProject(projectManager->getActiveProject());
-		}
+		frame->textInputPopup->action = "newGroup";
+		frame->textInputPopup->setCaption("New folder name");
+		frame->textInputPopup->setValue("New Folder");
+		frame->showModal(frame->textInputPopup);	
 	}
 }
 
@@ -157,10 +183,14 @@ void PolycodeIDEApp::openProject() {
 	ext.description = "Polycode Project File";
 	extensions.push_back(ext);
 	std::vector<String> paths = core->openFilePicker(extensions, false);
+	if(paths.size() == 0) 
+		return;
 	if(paths[0] != "") {
 		PolycodeProject *project = projectManager->openProject(paths[0]);
 		if(project) {
 			projectManager->setActiveProject(project);
+			OSFileEntry projectEntry =  OSFileEntry(project->getProjectFile(), OSFileEntry::TYPE_FILE);
+			openFile(projectEntry);			
 		}
 	}		
 }
@@ -198,6 +228,20 @@ void PolycodeIDEApp::runProject() {
 	}
 }
 
+void PolycodeIDEApp::addFiles() {
+	if(projectManager->getActiveProject()) {	
+		vector<CoreFileExtension> extensions;		
+		std::vector<String> files = core->openFilePicker(extensions, true);				
+		
+		for(int i=0; i < files.size(); i++) {
+			OSFileEntry entry = OSFileEntry(files[i], OSFileEntry::TYPE_FILE);
+			core->copyDiskItem(files[i], projectManager->activeFolder + "/" + entry.name);
+		}
+		
+		frame->getProjectBrowser()->refreshProject(projectManager->getActiveProject());		
+	}			
+}
+
 void PolycodeIDEApp::findText() {
 	if(editorManager->getCurrentEditor()) {
 		if(editorManager->getCurrentEditor()->getEditorType() == "PolycodeTextEditor") {
@@ -215,6 +259,13 @@ void PolycodeIDEApp::saveFile() {
 
 void PolycodeIDEApp::openProject(String projectFile) {
 	projectManager->openProject(projectFile);
+}
+
+void PolycodeIDEApp::openDocs() {
+
+	String polycodeBasePath = CoreServices::getInstance()->getCore()->getDefaultWorkingDirectory();
+	String docsURL = "file://localhost"+polycodeBasePath+"/Standalone/Docs/html/index.html";
+	core->openURL(docsURL);
 }
 
 void PolycodeIDEApp::openFileInProject(PolycodeProject *project, String filePath) {
@@ -241,7 +292,7 @@ void PolycodeIDEApp::openFile(OSFileEntry file) {
 	PolycodeEditor *editor;
 	editor = editorManager->getEditorForPath(file.fullPath);
 	if(editor) {
-		frame->showEditor(editor);				
+		frame->showEditor(editor);
 	} else {
 		editor = editorManager->createEditorForExtension(file.extension);
 		if(editor) {
@@ -292,8 +343,24 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 		
 		if(event->getEventType() == "PolycodeProjectBrowserEvent") {
 			switch(event->getEventCode()) {
-				case PolycodeProjectBrowserEvent::SHOW_MENU:
-					dispatchEvent(new Event(), EVENT_SHOW_MENU);
+				case PolycodeProjectBrowserEvent::HANDLE_MENU_COMMAND:
+					PolycodeProjectBrowserEvent *bEvent = (PolycodeProjectBrowserEvent*) event;
+					
+					if(bEvent->command == "add_new_file") {					
+						newFile();
+					} else if(bEvent->command == "add_files") {
+						addFiles();
+					} else if(bEvent->command == "add_new_project") {
+						newProject();
+					} else if(bEvent->command == "add_new_folder") {				
+						newGroup();
+					} else if(bEvent->command == "refresh") {
+						refreshProject();
+					} else if(bEvent->command == "rename") {
+						renameFile();
+					} else if(bEvent->command == "remove") {
+						removeFile();
+					}																				
 				break;
 			}
 		}
@@ -340,22 +407,40 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 		}
 	}
 
+	if(event->getDispatcher() == frame->yesNoPopup) {
+		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
+			if(frame->yesNoPopup->action == "removeFile") {
+				doRemoveFile();
+			}
+			frame->hideModal();
+			frame->yesNoPopup->action = "";
+		}
+	}
 	
 	if(event->getDispatcher() == frame->textInputPopup) {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
-			core->moveDiskItem(projectManager->selectedFileEntry.fullPath, projectManager->selectedFileEntry.basePath + "/" + frame->textInputPopup->getValue());			
-			if(projectManager->getActiveProject()) {
-				frame->getProjectBrowser()->refreshProject(projectManager->getActiveProject());
+						
+			if(frame->textInputPopup->action == "newGroup") {	
+				core->createFolder(projectManager->activeFolder+"/"+frame->textInputPopup->getValue());
+				if(projectManager->getActiveProject()) {
+					frame->getProjectBrowser()->refreshProject(projectManager->getActiveProject());
+				}			
 			}
 			
-			PolycodeEditor *editor = editorManager->getEditorForPath(projectManager->selectedFileEntry.fullPath);
-			if(editor) {
-				editor->setFilePath(projectManager->selectedFileEntry.basePath + "/" + frame->textInputPopup->getValue());
+			if(frame->textInputPopup->action == "renameFile") {		
+				core->moveDiskItem(projectManager->selectedFileEntry.fullPath, projectManager->selectedFileEntry.basePath + "/" + frame->textInputPopup->getValue());			
+				if(projectManager->getActiveProject()) {
+					frame->getProjectBrowser()->refreshProject(projectManager->getActiveProject());
+				}
+				
+				PolycodeEditor *editor = editorManager->getEditorForPath(projectManager->selectedFileEntry.fullPath);
+				if(editor) {
+					editor->setFilePath(projectManager->selectedFileEntry.basePath + "/" + frame->textInputPopup->getValue());
+				}
+				
+				projectManager->selectedFileEntry.fullPath = projectManager->selectedFileEntry.basePath + "/" + frame->textInputPopup->getValue();
+				projectManager->selectedFileEntry.name = frame->textInputPopup->getValue();				
 			}
-			
-			projectManager->selectedFileEntry.fullPath = projectManager->selectedFileEntry.basePath + "/" + frame->textInputPopup->getValue();
-			projectManager->selectedFileEntry.name = frame->textInputPopup->getValue();
-			
 			
 			frame->hideModal();			
 		}
@@ -390,7 +475,11 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 	if(event->getDispatcher() == frame->exampleBrowserWindow) {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
 			String fullPath = String(core->getDefaultWorkingDirectory()+"/"+frame->exampleBrowserWindow->getExamplePath());
-			projectManager->openProject(fullPath);
+			PolycodeProject* project = projectManager->openProject(fullPath);
+			OSFileEntry projectEntry =  OSFileEntry(project->getProjectFile(), OSFileEntry::TYPE_FILE);
+			projectManager->setActiveProject(project);
+			openFile(projectEntry);			
+			
 			frame->hideModal();			
 		}
 	}	
@@ -400,6 +489,7 @@ void PolycodeIDEApp::saveConfigFile() {
 	Object configFile;
 	configFile.root.name = "config";
 	configFile.root.addChild("open_projects");
+	configFile.root.addChild("syntax_theme", globalSyntaxTheme->name);
 	for(int i=0; i < projectManager->getProjectCount(); i++) {
 		PolycodeProject *project = projectManager->getProjectByIndex(i);		
 		ObjectEntry *projectEntry = configFile.root["open_projects"]->addChild("project");
@@ -411,16 +501,29 @@ void PolycodeIDEApp::saveConfigFile() {
 }
 
 void PolycodeIDEApp::loadConfigFile() {
-
 	Object configFile;
-	configFile.loadFromXML(core->getUserHomeDirectory()+"/Library/Application Support/Polycode/config.xml");		
+	// TODO: Make a crossplatform core method to get application data path
+	configFile.loadFromXML(core->getUserHomeDirectory()+"/Library/Application Support/Polycode/config.xml");
+		
+	globalSyntaxTheme = new SyntaxHighlightTheme();
+	String themeName = "default";
+	ObjectEntry *syntaxTheme = configFile.root["syntax_theme"];
+	if(syntaxTheme) {
+		themeName = syntaxTheme->stringVal;
+	}
+	themeName = "monokai";	
+	globalSyntaxTheme->loadFromFile(themeName);
+	
 	if(configFile.root["open_projects"]) {
 		ObjectEntry *projects = configFile.root["open_projects"];
 		if(projects) {
 		for(int i=0; i < projects->length; i++) {
 			ObjectEntry *entry = (*(*projects)[i])["path"];
 			if(entry) {
-				projectManager->openProject(entry->stringVal);	
+				PolycodeProject* project = projectManager->openProject(entry->stringVal);
+				OSFileEntry projectEntry =  OSFileEntry(project->getProjectFile(), OSFileEntry::TYPE_FILE);
+				projectManager->setActiveProject(project);
+				openFile(projectEntry);
 			}
 		}
 		}

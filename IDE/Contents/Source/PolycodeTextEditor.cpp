@@ -22,32 +22,108 @@
 
 #include "PolycodeTextEditor.h"
 
-PolycodeSyntaxHighlighter::PolycodeSyntaxHighlighter(String extension) {
+extern SyntaxHighlightTheme *globalSyntaxTheme;
 
-	colorScheme[0] = Color(0.0, 0.0, 0.0, 1.0);
-	colorScheme[1] = Color(0.0/255.0, 112.0/255.0, 0.0, 1.0);
-	colorScheme[2] = Color(192.0/255.0, 45.0/255.0, 167.0/255.0, 1.0);
-	colorScheme[3] = Color(48.0/255.0, 99.0/255.0, 105.0/255.0, 1.0);
-	colorScheme[4] = Color(227.0/255.0, 11.0/255.0, 0.0/255.0, 1.0);
-	colorScheme[5] = Color(82.0/255.0, 31.0/255.0, 140.0/255.0, 1.0);	
-	colorScheme[6] = Color(39.0/255.0, 41.0/255.0, 215.0/255.0, 1.0);
+void SyntaxHighlightTheme::loadFromFile(String themeName) {
+	String filePath = "SyntaxThemes/"+themeName+".xml";
+	
+	this->name =themeName;
+	
+	Object themeObject;
+	if(themeObject.loadFromXML(filePath)) {
+
+		ObjectEntry *hintingEntry = themeObject.root["useStrongHinting"];
+		if(hintingEntry) {
+			useStrongHinting = hintingEntry->boolVal;
+		}
+	
+		ObjectEntry *bgColorEntry = themeObject.root["bgColor"];		
+		if(bgColorEntry) {
+			ObjectEntry *r = (*bgColorEntry)["r"];
+			ObjectEntry *g = (*bgColorEntry)["g"];
+			ObjectEntry *b = (*bgColorEntry)["b"];
+			if(r && g && b) {
+				bgColor.setColorRGB(r->intVal, g->intVal, b->intVal);
+			}		
+		}
+
+		ObjectEntry *cursorColorEntry = themeObject.root["cursorColor"];		
+		if(cursorColorEntry) {
+			ObjectEntry *r = (*cursorColorEntry)["r"];
+			ObjectEntry *g = (*cursorColorEntry)["g"];
+			ObjectEntry *b = (*cursorColorEntry)["b"];
+			if(r && g && b) {
+				cursorColor.setColorRGB(r->intVal, g->intVal, b->intVal);
+			}		
+		}
+
+		ObjectEntry *selectionColorEntry = themeObject.root["selectionColor"];		
+		if(selectionColorEntry) {
+			ObjectEntry *r = (*selectionColorEntry)["r"];
+			ObjectEntry *g = (*selectionColorEntry)["g"];
+			ObjectEntry *b = (*selectionColorEntry)["b"];
+			if(r && g && b) {
+				selectionColor.setColorRGB(r->intVal, g->intVal, b->intVal);
+			}		
+		}
+		
+		ObjectEntry *lineNumberColorEntry = themeObject.root["lineNumberColor"];		
+		if(lineNumberColorEntry) {
+			ObjectEntry *r = (*lineNumberColorEntry)["r"];
+			ObjectEntry *g = (*lineNumberColorEntry)["g"];
+			ObjectEntry *b = (*lineNumberColorEntry)["b"];
+			if(r && g && b) {
+				lineNumberColor.setColorRGB(r->intVal, g->intVal, b->intVal);
+			}		
+		}		
+			
+		ObjectEntry *textColors = themeObject.root["textColors"];
+		if(textColors) {
+			for(int i=0; i < textColors->length && i < 8; i++) {
+				ObjectEntry *colorEntry = (*textColors)[i];
+				if(colorEntry) {
+					ObjectEntry *r = (*colorEntry)["r"];
+					ObjectEntry *g = (*colorEntry)["g"];
+					ObjectEntry *b = (*colorEntry)["b"];
+					if(r && g && b) {
+						colors[i].setColorRGB(r->intVal, g->intVal, b->intVal);
+					}
+				}				
+			}
+		}
+	}
+}
+
+PolycodeSyntaxHighlighter::PolycodeSyntaxHighlighter(String extension) {
 	
 //	String separators = " ;()\t\n=+-/\\'\"";	
 //	String keywords = "true,false,";
 	
-	separators = String("[ * [ ] { } ; . , : # ( ) \t \n = + - / \\ ' \"").split(" ");
-	separators.push_back(" ");
+	std::vector<String>separators_s = String("[ * [ ] { } ; . , : # ( ) \t \n = + - / \\ ' \"").split(" ");
+	separators_s.push_back(" ");
 	
-	keywords = String("and require true false class self break do end else elseif function if local nil not or repeat return then until while").split(" ");
+	for(int i=0; i < separators_s.size(); i++) {
+		separators.push_back(separators_s[i][0]);
+	}
+	
+	keywords = String("for cast safe_cast and require true false class self break do end else elseif function if local nil not or repeat return then until while").split(" ");
 }
 
 PolycodeSyntaxHighlighter::~PolycodeSyntaxHighlighter() {
 
 }
 
-bool PolycodeSyntaxHighlighter::contains(String part, std::vector<String> list) {
-	for(int i=0; i < list.size(); i++) {
-		if(list[i] == part)
+bool PolycodeSyntaxHighlighter::contains(String part, std::vector<String> *list) {
+	for(int i=0; i < list->size(); i++) {
+		if((*list)[i] == part)
+			return true;
+	}
+	return false;
+}
+
+bool PolycodeSyntaxHighlighter::contains_char(char part, std::vector<char> *list) {
+	for(int i=0; i < list->size(); i++) {
+		if((*list)[i] == part)
 			return true;
 	}
 	return false;
@@ -81,7 +157,7 @@ std::vector<SyntaxHighlightToken> PolycodeSyntaxHighlighter::parseLua(String tex
 	
 	for(int i=0; i < text.length(); i++) {
 		char ch = text[i];				
-		if(contains(String(ch), separators)) {			
+		if(contains_char(ch, &separators)) {			
 
 			unsigned int type = mode;
 			unsigned int ch_type = mode;
@@ -95,7 +171,7 @@ std::vector<SyntaxHighlightToken> PolycodeSyntaxHighlighter::parseLua(String tex
 			}
 
 			if(mode != MODE_STRING  && mode != MODE_COMMENT) {
-				if(contains(line, keywords)) {
+				if(contains(line, &keywords)) {
 					type = MODE_KEYWORD;
 				}
 			}
@@ -124,7 +200,7 @@ std::vector<SyntaxHighlightToken> PolycodeSyntaxHighlighter::parseLua(String tex
 	
 			if(line != "")
 				tokens.push_back(SyntaxHighlightToken(line, type));
-			tokens.push_back(SyntaxHighlightToken(String(ch), ch_type));
+			tokens.push_back(SyntaxHighlightToken(ch, ch_type));
 
 			if(ch == '-' && lastSeparator == '-' && mode != MODE_STRING) {
 				isComment = true;
@@ -163,35 +239,34 @@ std::vector<SyntaxHighlightToken> PolycodeSyntaxHighlighter::parseLua(String tex
 			line = "";
 			lastSeparator = ch;			
 		} else {
-			line += String(ch);
+			line.append(ch);
 		}
 	}
 	
 	for(int i=0; i < tokens.size(); i++) {
 		switch(tokens[i].type) {
 			case MODE_STRING:
-				tokens[i].color = colorScheme[4];			
+				tokens[i].color = globalSyntaxTheme->colors[4];			
 			break;
 			case MODE_COMMENT:
-				tokens[i].color = colorScheme[1];			
+				tokens[i].color = globalSyntaxTheme->colors[1];			
 			break;			
 			case MODE_METHOD:
-				tokens[i].color = colorScheme[3];			
+				tokens[i].color = globalSyntaxTheme->colors[3];			
 			break;			
 			case MODE_KEYWORD:
-				tokens[i].color = colorScheme[2];
+				tokens[i].color = globalSyntaxTheme->colors[2];
 			break;		
 			case MODE_NUMBER:
-				tokens[i].color = colorScheme[6];
+				tokens[i].color = globalSyntaxTheme->colors[6];
 			break;		
 			case MODE_MEMBER:
-				tokens[i].color = colorScheme[5];
+				tokens[i].color = globalSyntaxTheme->colors[5];
 			break;															
 			default:
-				tokens[i].color = colorScheme[0];
+				tokens[i].color = globalSyntaxTheme->colors[0];
 			break;
 		}
-//		printf("%s(%d)", tokens[i].text.c_str(), tokens[i].type);		
 	}
 	
 	return tokens;
@@ -209,7 +284,14 @@ PolycodeTextEditor::~PolycodeTextEditor() {
 bool PolycodeTextEditor::openFile(OSFileEntry filePath) {
 	
 	textInput = new UITextInput(true, 100, 100);
-	addChild(textInput);	
+	addChild(textInput);
+	textInput->setBackgroundColor(globalSyntaxTheme->bgColor);
+	textInput->setCursorColor(globalSyntaxTheme->cursorColor);
+	textInput->setSelectionColor(globalSyntaxTheme->selectionColor);
+	textInput->useStrongHinting = globalSyntaxTheme->useStrongHinting;
+	textInput->setLineNumberColor(globalSyntaxTheme->lineNumberColor);
+	textInput->enableLineNumbers(true);
+	
 	
 	findBar = new FindBar();
 	findBar->visible = false;
@@ -256,7 +338,7 @@ void PolycodeTextEditor::handleEvent(Event *event) {
 	}
 
 	if(event->getDispatcher() == findBar->replaceInput) {
-		if(event->getEventType() == "Event") {
+		if(event->getEventType() == "") {
 		
 			if(event->getEventCode() == Event::CANCEL_EVENT) {
 				hideFindBar();
@@ -271,7 +353,7 @@ void PolycodeTextEditor::handleEvent(Event *event) {
 	
 	
 	if(event->getDispatcher() == findBar->findInput) {
-		if(event->getEventType() == "Event") {
+		if(event->getEventType() == "") {
 		
 			if(event->getEventCode() == Event::CANCEL_EVENT) {
 				hideFindBar();
@@ -339,15 +421,15 @@ FindBar::FindBar() : UIElement() {
 	addChild(barBg);
 	this->height = 30;
 	
-	ScreenLabel *findLabel = new ScreenLabel("Find:", 16);
+	ScreenLabel *findLabel = new ScreenLabel("FIND", 22, "section");
 	addChild(findLabel);
 	findLabel->setColor(0.0, 0.0, 0.0, 0.3);
-	findLabel->setPosition(10,4);
+	findLabel->setPosition(10,6);
 
-	ScreenLabel *replaceLabel = new ScreenLabel("Replace:", 16);
+	ScreenLabel *replaceLabel = new ScreenLabel("REPLACE", 22, "section");
 	addChild(replaceLabel);
 	replaceLabel->setColor(0.0, 0.0, 0.0, 0.3);
-	replaceLabel->setPosition(200,4);
+	replaceLabel->setPosition(200,6);
 
 	processInputEvents = true;
 	

@@ -39,7 +39,7 @@ namespace Polycode {
 	/**
 	* Unicode-friendly string. The Polycode String class wraps around STL wstring to support Unicode text in the engine. You can request data from it in different encodings (currently only UTF-8) or plain char data. It is mostly just a wrapper around STL created for easier Unicode support, LUA bindings and convenience methods.
 	*/
-	class _PolyExport String {
+	class _PolyExport String : public PolyBase {
 		public:
 		
 			/**
@@ -211,7 +211,11 @@ namespace Polycode {
 			* @param encoding The encoding to use.
 			* @return The size the data would take up if returned with this encoding.
 			* @see getDataWithEncoding()
-			*/																																				
+			*/																		
+			
+
+			void append(const char c);
+
 			size_t getDataSizeWithEncoding(int encoding) const;					
 			
 			/**

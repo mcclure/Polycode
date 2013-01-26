@@ -22,8 +22,10 @@
 
 #include "PolycodeConsole.h"
 #include "PolycodeRemoteDebugger.h"
+#include "PolycodeTextEditor.h"
 
 PolycodeConsole* PolycodeConsole::instance = NULL;
+extern SyntaxHighlightTheme *globalSyntaxTheme;
 
 BackTraceEntry::BackTraceEntry(String fileName, int lineNumber, PolycodeProject *project) : UIElement() {
 
@@ -92,7 +94,7 @@ BackTraceWindow::BackTraceWindow() : UIElement() {
 
 	labelBg = new ScreenShape(ScreenShape::SHAPE_RECT, 20,30);
 	labelBg->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
-	labelBg->setColor(0.0, 0.0, 0.0, 0.35);
+	labelBg->setColor(0.1, 0.1, 0.1, 1.0);
 	addChild(labelBg);
 	
 	ScreenLabel *label = new ScreenLabel("CRASH STACK", 22, "section");
@@ -105,7 +107,7 @@ BackTraceWindow::BackTraceWindow() : UIElement() {
 void BackTraceWindow::Resize(Number width, Number height) {
 	labelBg->setShapeSize(width, 30);
 	this->width = width;
-	this->height = height;	
+	this->height = height;
 	adjustEntries();
 }
 
@@ -170,6 +172,7 @@ PolycodeConsole::PolycodeConsole() : UIElement() {
 	debugTextInput = new UITextInput(true, 100, 100);
 	backtraceSizer->addLeftChild(debugTextInput);
 
+
 	backtraceWindow = new BackTraceWindow();
 	backtraceSizer->addRightChild(backtraceWindow);
 
@@ -183,8 +186,17 @@ PolycodeConsole::PolycodeConsole() : UIElement() {
 	PolycodeConsole::setInstance(this);
 }
 
+
 PolycodeConsole::~PolycodeConsole() {
 
+}
+
+void PolycodeConsole::applyTheme() {
+	debugTextInput->setBackgroundColor(globalSyntaxTheme->bgColor);
+	debugTextInput->setCursorColor(globalSyntaxTheme->cursorColor);
+	debugTextInput->setSelectionColor(globalSyntaxTheme->selectionColor);
+	debugTextInput->useStrongHinting = globalSyntaxTheme->useStrongHinting;
+	debugTextInput->setTextColor(globalSyntaxTheme->colors[0]);
 }
 
 void PolycodeConsole::setDebugger(PolycodeRemoteDebugger *debugger) {
@@ -193,7 +205,7 @@ void PolycodeConsole::setDebugger(PolycodeRemoteDebugger *debugger) {
 
 void PolycodeConsole::handleEvent(Event *event) {
 	if(event->getDispatcher() == consoleTextInput) {
-		if(event->getEventCode() == Event::COMPLETE_EVENT && event->getEventType() == "Event") {
+		if(event->getEventCode() == Event::COMPLETE_EVENT && event->getEventType() == "") {
 			_print(">"+consoleTextInput->getText()+"\n");
 			if(debugger) {
 				if(!debugger->isConnected()) {
@@ -233,9 +245,10 @@ void PolycodeConsole::_clearBacktraces() {
 }
 
 
-void PolycodeConsole::_print(String msg) {
+void PolycodeConsole::_print(String msg) {	
 	debugTextInput->setText(debugTextInput->getText()+msg);
 	debugTextInput->getScrollContainer()->setScrollValue(0, 1.0);
+	printf("%s", msg.c_str());
 }
 
 void PolycodeConsole::Resize(Number width, Number height) {

@@ -37,7 +37,7 @@ namespace Polycode {
 	/**
 	* Controls global sound settings.
 	*/
-	class _PolyExport SoundManager {
+	class _PolyExport SoundManager : public PolyBase{
 	public:
 		SoundManager();
 		virtual ~SoundManager();

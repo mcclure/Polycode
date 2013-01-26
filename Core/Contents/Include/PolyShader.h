@@ -87,7 +87,7 @@ namespace Polycode {
 			int type;
 	};
 	
-	class _PolyExport ShaderRenderTarget {
+	class _PolyExport ShaderRenderTarget : public PolyBase {
 		public:
 			String id;
 			Number width;
@@ -100,7 +100,7 @@ namespace Polycode {
 			static const int SIZE_MODE_NORMALIZED = 1;
 	};
 	
-	class LocalShaderParam {
+	class LocalShaderParam : public PolyBase {
 		public:	
 			String name;
 			void *data;
@@ -116,7 +116,7 @@ namespace Polycode {
 		void setColor(Color x)     { memcpy(data, &x, sizeof(x)); }
 	};	
 	
-	class RenderTargetBinding {
+	class RenderTargetBinding : public PolyBase {
 		public:
 			String id;
 			String name;
@@ -128,7 +128,7 @@ namespace Polycode {
 			static const int MODE_OUT = 1;
 	};
 
-	class _PolyExport ShaderBinding {
+	class _PolyExport ShaderBinding : public PolyBase {
 		public:
 			ShaderBinding(Shader *shader);
 			virtual ~ShaderBinding();

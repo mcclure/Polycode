@@ -104,6 +104,8 @@ class PolycodeConsole : public UIElement {
 		static void clearBacktraces();
 		void _clearBacktraces();
 		
+		void applyTheme();
+		
 		void _addBacktrace(String fileName, int lineNumber, PolycodeProject *project);
 		
 		void Resize(Number width, Number height);
@@ -115,9 +117,10 @@ class PolycodeConsole : public UIElement {
 	
 		UIHSizer *backtraceSizer;
 	
-		PolycodeRemoteDebugger *debugger;
-		
+		PolycodeRemoteDebugger *debugger;		
 		static PolycodeConsole *instance;
+		
+		
 		
 		UITextInput *debugTextInput;
 		UITextInput *consoleTextInput;		

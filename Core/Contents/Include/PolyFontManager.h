@@ -39,7 +39,7 @@ namespace Polycode {
 	/**
 	* Manages fonts. The font manager shoudl only be accessed via the CoreServices singleton.
 	*/
-	class _PolyExport FontManager {
+	class _PolyExport FontManager : public PolyBase {
 	public:
 		FontManager();
 		virtual ~FontManager();
@@ -57,6 +57,13 @@ namespace Polycode {
 		* @return The font instance associated with the font name or NULL if one doesn't exist.
 		*/		
 		Font *getFontByName(const String& fontName);
+		
+		unsigned int getNumFonts() const;
+		FontEntry *getFontEntryByIndex(const unsigned int index);
+
+		FontEntry *getFontEntryByFontPath(const String &fontPath);
+		
+		void removeFontEntry(FontEntry *entry, bool deleteFont);
 		
 	private:
 		

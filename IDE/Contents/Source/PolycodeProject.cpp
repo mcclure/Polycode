@@ -60,6 +60,14 @@ bool PolycodeProject::loadProjectFromFile() {
 		data.defaultHeight = 480;	
 		configFile.root.addChild("defaultHeight", 480);		
 	}
+	
+	if(configFile.root["textureFiltering"]) {	
+		data.filteringMode = configFile.root["textureFiltering"]->stringVal;
+	} else {
+		data.filteringMode = "linear";
+		configFile.root.addChild("textureFiltering", String("linear"));	
+	}
+	
 
 	if(configFile.root["vSync"]) {	
 		data.vSync = configFile.root["vSync"]->boolVal;
@@ -96,8 +104,24 @@ bool PolycodeProject::loadProjectFromFile() {
 		for(int i=0; i < configFile.root["modules"]->length; i++) {
 			ObjectEntry *module = (*configFile.root["modules"])[i];
 			data.modules.push_back(module->stringVal);
+			CoreServices::getInstance()->getResourceManager()->addArchive("Standalone/Modules/"+module->stringVal+"/API");
+			
 		}
-	}	
+	}
+	
+	data.fonts.clear();
+	if(configFile.root["fonts"]) {
+		for(int i=0; i < configFile.root["fonts"]->length; i++) {
+			ObjectEntry *font = (*configFile.root["fonts"])[i];
+			ObjectEntry *fontName = (*font)["name"];
+			ObjectEntry *fontPath = (*font)["path"];
+			
+			if(fontName && fontPath) {
+				ProjectFontData fontData = ProjectFontData(fontName->stringVal, fontPath->stringVal);
+				data.fonts.push_back(fontData);
+			}
+		}
+	}		
 
 	if(configFile.root["backgroundColor"]) {
 		ObjectEntry *color = configFile.root["backgroundColor"];
@@ -127,7 +151,10 @@ bool PolycodeProject::saveFile() {
 	configFile.root["defaultWidth"]->intVal = data.defaultWidth;
 	configFile.root["defaultHeight"]->intVal = data.defaultHeight;
 	configFile.root["entryPoint"]->stringVal = data.entryPoint;
-	configFile.root["entryPoint"]->type = ObjectEntry::STRING_ENTRY;
+	configFile.root["entryPoint"]->type = ObjectEntry::STRING_ENTRY;	
+	
+	configFile.root["textureFiltering"]->type = ObjectEntry::STRING_ENTRY;
+	configFile.root["textureFiltering"]->stringVal = data.filteringMode;
 	
 	ObjectEntry *color = configFile.root["backgroundColor"];
 	
@@ -146,11 +173,30 @@ bool PolycodeProject::saveFile() {
 	
 	for(int j=0; j < data.modules.size(); j++) {
 		if(!configFile.root["modules"]) {
-			configFile.root.addChild("modules");	
+			configFile.root.addChild("modules");			
 		}	
-		configFile.root["modules"]->type = ObjectEntry::ARRAY_ENTRY;	
+		configFile.root["modules"]->type = ObjectEntry::ARRAY_ENTRY;
 		configFile.root["modules"]->addChild("module", data.modules[j]);
+		
+		CoreServices::getInstance()->getResourceManager()->addArchive("Standalone/Modules/"+data.modules[j]+"/API");
+		
 	}
+	
+	if(configFile.root["fonts"]) {
+		configFile.root["fonts"]->Clear();
+	}
+	
+	for(int j=0; j < data.fonts.size(); j++) {
+		if(!configFile.root["fonts"]) {
+			configFile.root.addChild("fonts");	
+		}	
+		configFile.root["fonts"]->type = ObjectEntry::ARRAY_ENTRY;	
+
+		ObjectEntry *objectEntry = configFile.root["fonts"]->addChild("font");
+		objectEntry->addChild("name", data.fonts[j].fontName);
+		objectEntry->addChild("path", data.fonts[j].fontPath);			
+
+	}	
 	
 	if(configFile.root["packedItems"]) {
 		configFile.root["packedItems"]->Clear();

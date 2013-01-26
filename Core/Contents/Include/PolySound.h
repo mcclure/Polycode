@@ -23,6 +23,7 @@
 #pragma once
 #include "PolyGlobals.h"
 #include "PolyVector3.h"
+#include "PolyString.h"
 
 #if POLYCODE_USE_OPENAL
 #include "al.h"
@@ -49,7 +50,7 @@ namespace Polycode {
 	/**
 	* Loads and plays a sound. This class can load and play an OGG or WAV sound file.
 	*/
-	class _PolyExport Sound {
+	class _PolyExport Sound : public PolyBase {
 	public:
 	
 		/**
@@ -59,6 +60,8 @@ namespace Polycode {
 		Sound(const String& fileName);
 		Sound(const char *data, int size, int channels = 1, ALsizei freq = 44100, int bps = 16);
 		virtual ~Sound();
+		
+		void loadFile(String fileName);
 		
 		/**
 		* Play the sound once or in a loop.
@@ -77,11 +80,15 @@ namespace Polycode {
 		*/
 		void setVolume(Number newVolume);
 
+		Number getVolume();
+
 		/**
 		* Sets the pitch of this sound.
 		* @param newPitch A Number 0-1.
 		*/		
 		void setPitch(Number newPitch);
+		
+		Number getPitch();
 		
 		/**
 		* Returns true if the sound is playing.
@@ -101,6 +108,7 @@ namespace Polycode {
 		*/
 		void setOffset(int off);
 		
+		String getFileName();
 		
 		Number getPlaybackDuration();
 		
@@ -121,6 +129,12 @@ namespace Polycode {
 		
 		void setPositionalProperties(Number referenceDistance, Number maxDistance);
 		
+		void setReferenceDistance(Number referenceDistance);
+		void setMaxDistance(Number maxDistance);
+		
+		Number getReferenceDistance();
+		Number getMaxDistance();
+		
 		ALuint loadBytes(const char *data, int size, int channels = 1, ALsizei freq = 44100, int bps = 16);
 		ALuint loadWAV(const String& fileName);
 		ALuint loadOGG(const String& fileName);
@@ -135,6 +149,16 @@ namespace Polycode {
 		static unsigned short readByte16(const unsigned char buffer[2]);
 
 	protected:
+	
+		Number referenceDistance;
+		Number maxDistance;
+			
+		Number pitch;
+		Number volume;
+	
+		String fileName;
+		
+		bool soundLoaded;
 	
 		bool isPositional;
 		ALuint soundSource;
