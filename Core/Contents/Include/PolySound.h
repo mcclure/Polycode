@@ -39,6 +39,7 @@
 #else
 typedef unsigned int ALuint;
 typedef int ALsizei;
+typedef int ALenum;
 #endif
 
 #define BUFFER_SIZE 32768
