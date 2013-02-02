@@ -76,9 +76,10 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	cppRegisterOut += "#include \"PolyCoreServices.h\"\n\n"
 	cppRegisterOut += "using namespace Polycode;\n\n"
 	cppRegisterOut += "int luaopen_%s(lua_State *L) {\n" % (prefix)
-	if prefix != "Polycode":
-		cppRegisterOut += "CoreServices *inst = (CoreServices*) *((void**)lua_touserdata(L, 1));\n"
-		cppRegisterOut += "CoreServices::setInstance(inst);\n"
+
+#	if prefix != "Polycode":
+#		cppRegisterOut += "CoreServices *inst = (CoreServices*) *((void**)lua_touserdata(L, 1));\n"
+#		cppRegisterOut += "CoreServices::setInstance(inst);\n"
 	cppRegisterOut += "\tstatic const struct luaL_reg %sLib [] = {" % (libSmallName)
 	
 	wrappersHeaderOut += "#pragma once\n\n"
@@ -365,6 +366,25 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 							wrappersHeaderOut += "\treturn 0;\n"
 							wrappersHeaderOut += "}\n\n"
 							pidx = pidx + 1 # Success
+						else:
+							if pp["type"].find("*") == -1 and pp["type"].find("static") == -1:
+								if pidx == 0:
+									luaClassBindingOut += "\tif name == \"%s\" then\n" % (pp["name"])
+								else:
+									luaClassBindingOut += "\telseif name == \"%s\" then\n" % (pp["name"])
+								luaClassBindingOut += "\t\t%s.%s_set_%s(self.__ptr, value.__ptr)\n" % (libName, ckey, pp["name"])
+								luaClassBindingOut += "\t\treturn true\n"
+							
+								cppRegisterOut += "\t\t{\"%s_set_%s\", %s_%s_set_%s},\n" % (ckey, pp["name"], libName, ckey, pp["name"])
+								wrappersHeaderOut += "static int %s_%s_set_%s(lua_State *L) {\n" % (libName, ckey, pp["name"])
+								wrappersHeaderOut += "\tluaL_checktype(L, 1, LUA_TUSERDATA);\n"
+								wrappersHeaderOut += "\t%s *inst = (%s*) *((PolyBase**)lua_touserdata(L, 1));\n" % (ckey, ckey)
+								wrappersHeaderOut += "\tluaL_checktype(L, 2, LUA_TUSERDATA);\n"
+								wrappersHeaderOut += "\t%s *argInst = (%s*) *((PolyBase**)lua_touserdata(L, 2));\n" % (typeFilter(pp["type"]), typeFilter(pp["type"]))
+								wrappersHeaderOut += "\tinst->%s = *argInst;\n" % (pp["name"])
+								wrappersHeaderOut += "\treturn 0;\n"
+								wrappersHeaderOut += "}\n\n"
+								pidx = pidx + 1 # Success
 							
 						# Notice: Setters for object types are not created.
 					if pidx != 0:
@@ -787,6 +807,11 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 	os.chdir(apiPath)
 	if libName == "Polycore":
 		with ZipFile("api.pak", 'w') as myzip:
+			for root, dirs, files in os.walk("."):
+				for filename in fnmatch.filter(files, pattern):
+					myzip.write(os.path.join(root, filename))
+	else:
+		with ZipFile("%s.pak" % (libName), 'w') as myzip:
 			for root, dirs, files in os.walk("."):
 				for filename in fnmatch.filter(files, pattern):
 					myzip.write(os.path.join(root, filename))

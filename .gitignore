@@ -39,6 +39,8 @@
 UserInterfaceState.*
 Player/Build/Mac OS X/Polycode Player.xcodeproj/project.xcworkspace/xcuserdata/ivansafrin.xcuserdatad/UserInterfaceState.xcuserstate
 
+.substance
+
 /Bindings/Contents/LUA/API/Polycode/*.lua
 !/Bindings/Contents/LUA/API/Polycode/EventDispatcher.lua
 /Bindings/Contents/LUA/API/Polycode.lua
@@ -46,6 +48,10 @@ Player/Build/Mac OS X/Polycode Player.xcodeproj/project.xcworkspace/xcuserdata/i
 /Bindings/Contents/LUA/Include/*.h
 /Bindings/Contents/LUA/Source/*.cpp	
 /Bindings/Contents/LUA/Source
+
+/Modules/Bindings/2DPhysics/API/Physics2D.pak
+/Modules/Bindings/3DPhysics/API/Physics3D.pak
+/Modules/Bindings/UI/API/UI.pak
 
 /Modules/Bindings/2DPhysics/API/Physics2D/*.lua
 /Modules/Bindings/2DPhysics/API/Physics2D.lua
