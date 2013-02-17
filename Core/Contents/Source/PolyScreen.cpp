@@ -44,7 +44,6 @@ Screen::Screen() : EventDispatcher() {
 	_hasFilterShader = false;
 	useNormalizedCoordinates = false;
 	processTouchEventsAsMouse = false;
-	ownsChildren = false;
 
 	rootEntity.processInputEvents = true;
 
