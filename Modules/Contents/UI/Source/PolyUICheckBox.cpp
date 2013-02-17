@@ -38,9 +38,9 @@ UICheckBox::UICheckBox(String caption, bool checked) : UIElement() {
 	String uncheckImage = conf->getStringValue("Polycode", "uiCheckBoxUncheckedImage");
 	Number checkboxTextOffsetX = conf->getNumericValue("Polycode", "uiCheckBoxLabelOffsetX");
 	Number checkboxTextOffsetY = conf->getNumericValue("Polycode", "uiCheckBoxLabelOffsetY");
-		
+	
 	this->checked = checked;
-		
+	
 	buttonImageChecked = new ScreenImage(checkImage);
 	buttonImageChecked->visible = checked;
 
@@ -66,7 +66,6 @@ UICheckBox::UICheckBox(String caption, bool checked) : UIElement() {
 	
 	height = buttonImageUnchecked->getHeight();
 	width = buttonImageUnchecked->getWidth() + captionLabel->getWidth() + checkboxTextOffsetX;
-	
 }
 
 String UICheckBox::getCaptionLabel() {
@@ -74,7 +73,9 @@ String UICheckBox::getCaptionLabel() {
 }
 
 UICheckBox::~UICheckBox() {
-
+	delete buttonImageChecked;
+	delete buttonImageUnchecked;
+	delete captionLabel;
 }
 
 bool UICheckBox::isChecked() {
