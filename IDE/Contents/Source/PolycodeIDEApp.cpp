@@ -30,8 +30,8 @@ SyntaxHighlightTheme *globalSyntaxTheme;
 
 PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	core = new CocoaCore(view, 900,700,false,true, 0, 0,30);	
-	core->addEventListener(this, Core::EVENT_CORE_RESIZE);	
-	CoreServices::getInstance()->getRenderer()->setClearColor(0.2,0.2,0.2);
+	core->addEventListener(this, Core::EVENT_CORE_RESIZE);
+	
 	
 	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_NEAREST);
 				
@@ -51,9 +51,9 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	CoreServices::getInstance()->getResourceManager()->addArchive("UIThemes/default/");
 	CoreServices::getInstance()->getResourceManager()->addArchive("Images/");	
 
-	CoreServices::getInstance()->getFontManager()->registerFont("section", "Fonts/LeagueGothic-Regular.otf");	
+	CoreServices::getInstance()->getFontManager()->registerFont("section", "Fonts/Roboto-Thin.ttf");
 
-	CoreServices::getInstance()->getFontManager()->registerFont("editor_font", "Fonts/Inconsolata.otf");
+	CoreServices::getInstance()->getRenderer()->clearColor.setColorHexFromString(CoreServices::getInstance()->getConfig()->getStringValue("Polycode", "uiBgColor"));
 
 //	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_LINEAR);
 	CoreServices::getInstance()->getRenderer()->setTextureFilteringMode(Renderer::TEX_FILTERING_NEAREST);

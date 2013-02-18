@@ -23,7 +23,8 @@
 
 #pragma once
 #include "PolyGlobals.h"
- 
+#include "PolyString.h"
+
 namespace Polycode {
 
 	/**
@@ -32,6 +33,16 @@ namespace Polycode {
 	class _PolyExport Color : public PolyBase {
 		public:
 
+	
+			/**
+			* Create from 0-1 floating point data.
+			* @param r Red value 0-1.
+			* @param g Green value 0-1
+			* @param b Blue value 0-1
+			* @param a Alpha value 0-1									
+			*/														
+			Color(Number r,Number g, Number b, Number a);
+			
 			/**
 			* Default constructor.
 			*/						
@@ -45,16 +56,7 @@ namespace Polycode {
 			* @param a Alpha value 0-255.									
 			*/									
 			Color(int r,int g, int b, int a);	
-			
-			/**
-			* Create from 0-1 floating point data.
-			* @param r Red value 0-1.
-			* @param g Green value 0-1
-			* @param b Blue value 0-1
-			* @param a Alpha value 0-1									
-			*/														
-			Color(Number r,Number g, Number b, Number a);
-			
+		
 			/**
 			* Create from another color.
 			* @param color The color to create from.
@@ -124,6 +126,18 @@ namespace Polycode {
 			*/						
 			void setColorHexRGB(unsigned int hex);
 		
+			/** 
+			* Sets the color using an integer color value from a string
+			* @param hex String with hex RGBA color values.
+			*/			
+			void setColorHexFromString(String hex);
+			
+			/** 
+			* Sets the color using a 24-bit RGB integer color value  from a string
+			* @param hex String with hex RGB color values.
+			*/						
+			void setColorHexRGBFromString(String hex);
+					
 			/** 
 			* Sets the color using HSV values.
 			* @param h Hue.

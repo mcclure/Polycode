@@ -47,16 +47,24 @@ Color::Color(unsigned int hex) {
 
 void Color::setColorHexRGB(unsigned int hex) {
 
-	int tr = (hex >> 24) & 0xFF;
-	int tb = (hex >> 16) & 0xFF;
+//	int tr = (hex >> 24) & 0xFF;
+	int tr = (hex >> 16) & 0xFF;
 	int tg = (hex >> 8) & 0xFF;
-//	int ta = (hex ) & 0xFF;
+	int tb = (hex ) & 0xFF;
 	
 	r = ((Number)tr)/255.0f;
 	g = ((Number)tg)/255.0f;
 	b = ((Number)tb)/255.0f;
 //	a = ((Number)ta)/255.0f;	
 	
+}
+
+void Color::setColorHexFromString(String hex) {
+	setColorHex(strtol(hex.c_str(), 0, 16));
+}
+
+void Color::setColorHexRGBFromString(String hex) {
+	setColorHexRGB(strtol(hex.c_str(), 0, 16));
 }
 
 Color Color::blendColor(Color c2, int mode, Number amount, Color c3) {
@@ -83,10 +91,10 @@ Color Color::blendColor(Color c2, int mode, Number amount, Color c3) {
 }
 
 void Color::setColorHex(unsigned int hex) {
-	int ta = (hex >> 24) & 0xFF;
-	int tb = (hex >> 16) & 0xFF;
-	int tg = (hex >> 8) & 0xFF;
-	int tr = (hex ) & 0xFF;
+	int tr = (hex >> 24) & 0xFF;
+	int tg = (hex >> 16) & 0xFF;
+	int tb = (hex >> 8) & 0xFF;
+	int ta = (hex ) & 0xFF;
 	
 	r = ((Number)tr)/255.0f;
 	g = ((Number)tg)/255.0f;

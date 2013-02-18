@@ -57,7 +57,7 @@ UIMenu::UIMenu(Number menuWidth) : UIElement() {
 
 	Config *conf = CoreServices::getInstance()->getConfig();	
 				
-	this->menuItemHeight = 20.0;	
+	this->menuItemHeight = conf->getNumericValue("Polycode", "uiMenuItemHeight");
 	this->menuWidth = menuWidth;
 	nextItemHeight = 0;
 			
@@ -84,7 +84,9 @@ UIMenu::UIMenu(Number menuWidth) : UIElement() {
 	
 	dropDownBox->blockMouseInput = true;
 	
-	selectorBox = new UIBox(selectorBgImage, st,sr,sb,sl, menuWidth-(paddingX*2.0), menuItemHeight);
+	selectorPadding = conf->getNumericValue("Polycode", "uiMenuSelectorPadding");
+	
+	selectorBox = new UIBox(selectorBgImage, st,sr,sb,sl, menuWidth - (paddingX * 2.0), menuItemHeight + (selectorPadding * 2.0));
 	dropDownBox->addChild(selectorBox);
 	selectorBox->blockMouseInput = true;
 	
@@ -158,11 +160,11 @@ void UIMenu::handleEvent(Event *event) {
 			case InputEvent::EVENT_MOUSEMOVE:
 			{
 				InputEvent *inputEvent = (InputEvent*) event;
-				selectedOffset = floor((inputEvent->getMousePosition().y-paddingY)/menuItemHeight);
+				selectedOffset = floor(((inputEvent->getMousePosition().y-selectorPadding)-paddingY)/menuItemHeight);
 					
 				if(selectedOffset >= 0 && selectedOffset < items.size()) {
 					selectorBox->visible = true;				
-					selectorBox->setPosition(paddingX,paddingY+(selectedOffset*menuItemHeight));
+					selectorBox->setPosition(paddingX,paddingY+(selectedOffset*menuItemHeight) - selectorPadding);
 				} else {
 					selectorBox->visible = false;
 				}
