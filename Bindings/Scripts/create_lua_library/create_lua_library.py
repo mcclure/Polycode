@@ -156,7 +156,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 					for line in f.readlines():
 						inheritInModule.append(line.strip().split("/",1)[-1]) # Strip whitespace, path/
 		
-		print "Parsing %s" % fileName
+		print("Parsing %s" % fileName)
 		try: # One input file parse.
 			f = open(fileName) # Def: Input file handle
 			contents = f.read().replace("_PolyExport", "") # Def: Input file contents, strip out "_PolyExport"
@@ -165,7 +165,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 			# Iterate, check each class in this file.
 			for ckey in cppHeader.classes: 
-				print ">> Parsing class %s" % ckey
+				print(">> Parsing class %s" % ckey)
 				c = cppHeader.classes[ckey] # Def: The class structure
 
 				luaClassBindingOut = "" # Def: The local lua file to generate for this class.
@@ -433,7 +433,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						paramIndex = 0
 						for param in pm["parameters"]:
 							if "name" in param:
-								if not param.has_key("type"):
+								if not "type" in param:
 									continue
 								if param["type"] == "0":
 									continue
@@ -485,7 +485,7 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 						paramlist = []
 						lparamlist = []
 						for param in pm["parameters"]:
-							if not param.has_key("type"):
+							if not "type" in param:
 								continue
 							if param["type"] == "0":
 								continue
@@ -745,8 +745,8 @@ def createLUABindings(inputPath, prefix, mainInclude, libSmallName, libName, api
 
 				luaDocOut += "\t</class>\n"
 	
-		except CppHeaderParser.CppParseError,  e: # One input file parse; failed.
-			print e
+		except CppHeaderParser.CppParseError as e: # One input file parse; failed.
+			print(e)
 			sys.exit(1)
 
 	luaDocOut += "</classes>\n"

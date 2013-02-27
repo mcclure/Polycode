@@ -49,6 +49,7 @@ PFNGLUNIFORM1IPROC glUniform1i;
 PFNGLUNIFORM1FPROC glUniform1f;
 PFNGLUNIFORM2FPROC glUniform2f;
 PFNGLUNIFORM3FPROC glUniform3f;
+PFNGLUNIFORM4FPROC glUniform4f;
 extern PFNGLACTIVETEXTUREPROC glActiveTexture;
 PFNGLCREATESHADERPROC glCreateShader;
 PFNGLSHADERSOURCEPROC glShaderSource;
@@ -75,6 +76,7 @@ GLSLShaderModule::GLSLShaderModule() : PolycodeShaderModule() {
 	glUniform1f = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");	
 	glUniform2f = (PFNGLUNIFORM2FPROC)wglGetProcAddress("glUniform2f");	
 	glUniform3f = (PFNGLUNIFORM3FPROC)wglGetProcAddress("glUniform3f");
+	glUniform4f = (PFNGLUNIFORM4FPROC)wglGetProcAddress("glUniform4f");
 	glCreateShader = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
 	glShaderSource = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
 	glCompileShader = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
@@ -135,9 +137,7 @@ Shader *GLSLShaderModule::createShader(TiXmlNode *node) {
 					if(strcmp(pChild2->Value(), "params") == 0) {
 						for (pChild3 = pChild2->FirstChild(); pChild3 != 0; pChild3 = pChild3->NextSibling()) {
 							if(strcmp(pChild3->Value(), "param") == 0) {
-								TiXmlElement *pChild3Element = pChild3->ToElement();
-								if (pChild3Element) // Skip comment nodes
-									expectedVertexParams.push_back(addParamToProgram(vp,pChild3Element));
+								expectedVertexParams.push_back(addParamToProgram(vp,pChild3));
 							}
 						}
 					}
@@ -151,9 +151,7 @@ Shader *GLSLShaderModule::createShader(TiXmlNode *node) {
 					if(strcmp(pChild2->Value(), "params") == 0) {
 						for (pChild3 = pChild2->FirstChild(); pChild3 != 0; pChild3 = pChild3->NextSibling()) {
 							if(strcmp(pChild3->Value(), "param") == 0) {
-								TiXmlElement *pChild3Element = pChild3->ToElement();
-								if (pChild3Element) // Skip comment nodes
-									expectedFragmentParams.push_back(addParamToProgram(fp,pChild3Element));	
+								expectedFragmentParams.push_back(addParamToProgram(fp,pChild3));	
 							}
 						}
 					}
@@ -464,13 +462,19 @@ bool GLSLShaderModule::applyShaderMaterial(Renderer *renderer, Material *materia
 	return true;
 }
 
-GLSLProgramParam GLSLShaderModule::addParamToProgram(GLSLProgram *program,TiXmlElement *nodeElement) {
+GLSLProgramParam GLSLShaderModule::addParamToProgram(GLSLProgram *program,TiXmlNode *node) {
 		bool isAuto = false;
 		int autoID = 0;
 		int paramType = GLSLProgramParam::PARAM_UNKNOWN;
 		void *defaultData = NULL;
 		void *minData = NULL;
 		void *maxData = NULL;
+		
+		TiXmlElement *nodeElement = node->ToElement();
+		if (!nodeElement) {
+			GLSLProgramParam::createParamData(&paramType, "Number", "0.0", "0.0", "0.0", &defaultData, &minData, &maxData);		
+			return program->addParam("Unknown", "Number", nodeElement->Attribute("default"), isAuto, autoID, paramType, defaultData, minData, maxData); // Skip comment nodes
+		}
 
 		isAuto = false;
 		

@@ -158,6 +158,11 @@ void Win32Core::setVSync(bool vSyncVal) {
 
 void Win32Core::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel) {
 
+	this->xRes = xRes;
+	this->yRes = yRes;
+	this->fullScreen = fullScreen;
+	this->aaLevel = aaLevel;
+
 	if(fullScreen) {
 
 		SetWindowLong(hWnd, GWL_STYLE, WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP);
@@ -193,6 +198,7 @@ void Win32Core::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, in
 
 	setVSync(vSync);
 
+	renderer->setAnisotropyAmount(anisotropyLevel);
 	renderer->Resize(xRes, yRes);
 }
 

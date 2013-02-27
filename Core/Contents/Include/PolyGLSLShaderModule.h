@@ -24,8 +24,6 @@ THE SOFTWARE.
 
 #include "PolyModule.h"
 
-class TiXmlElement;
-
 namespace Polycode {
 	
 	class GLSLProgram;
@@ -47,7 +45,7 @@ namespace Polycode {
 		
 	protected:
 
-		GLSLProgramParam addParamToProgram(GLSLProgram *program,TiXmlElement *nodeElement);		
+		GLSLProgramParam addParamToProgram(GLSLProgram *program,TiXmlNode *node);		
 		void recreateGLSLProgram(GLSLProgram *prog, const String& fileName, int type);
 		GLSLProgram *createGLSLProgram(const String& fileName, int type);
 		void updateGLSLParam(Renderer *renderer, GLSLShader *glslShader, GLSLProgramParam &param, ShaderBinding *materialOptions, ShaderBinding *localOptions);			
