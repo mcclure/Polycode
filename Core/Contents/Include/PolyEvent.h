@@ -67,14 +67,15 @@ namespace Polycode {
 			// Note that collisions are usually safe as long as collisions do not occur between a class and its subclass.
 			// Event		0x100
 			// Core			0x200
-			// InputEvent	0x300
-			// SocketEvent	0x400
-			// ClientEvent	0x500
-			// ServerEvent	0x600
-			// UIEvent		0x700
-			// UITreeEvent	0x800
-			// PhysicsScreenEvent	0x900
-			// PhysicsSceneEvent	0xA00
+			// PlatformCore 0x300 (e.g. CocoaCore, WinCore etc)
+			// InputEvent	0x400
+			// SocketEvent	0x500
+			// ClientEvent	0x600
+			// ServerEvent	0x700
+			// PhysicsScreenEvent	0x800
+			// PhysicsSceneEvent	0x900
+			// UIEvent		0xA00
+			// UITreeEvent	0xB00
 		
 			static const int EVENTBASE_EVENT = 0x100;
 			static const int COMPLETE_EVENT = EVENTBASE_EVENT+0;

@@ -50,7 +50,7 @@ namespace Polycode {
 			*  Possible input event types dispatched by CoreInput.
 			*/
 			//@{
-		static const int EVENTBASE_INPUTEVENT = 0x300;
+		static const int EVENTBASE_INPUTEVENT = 0x400;
 		static const int EVENT_MOUSEDOWN = EVENTBASE_INPUTEVENT+0;
 		static const int EVENT_MOUSEUP = EVENTBASE_INPUTEVENT+1;
 		static const int EVENT_MOUSEMOVE = EVENTBASE_INPUTEVENT+2;

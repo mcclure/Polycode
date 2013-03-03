@@ -34,7 +34,7 @@ namespace Polycode {
 			UITreeEvent();
 			virtual ~UITreeEvent();
 		
-			static const int EVENTBASE_UITREEEVENT = 0x800;
+			static const int EVENTBASE_UITREEEVENT = 0xB00;
 			static const int NEED_REFRESH_EVENT = EVENTBASE_UITREEEVENT+0;
 			static const int SELECTED_EVENT = EVENTBASE_UITREEEVENT+1;
 			static const int EXECUTED_EVENT = EVENTBASE_UITREEEVENT+2;

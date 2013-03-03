@@ -94,7 +94,7 @@ namespace Polycode {
 		unsigned int dataSize;
 		Address fromAddress;
 		
-		static const int EVENTBASE_SOCKETEVENT = 0x400;
+		static const int EVENTBASE_SOCKETEVENT = 0x500;
 		static const int EVENT_ERROR = EVENTBASE_SOCKETEVENT+0;
 		static const int EVENT_DATA_RECEIVED = EVENTBASE_SOCKETEVENT+1;
 	};

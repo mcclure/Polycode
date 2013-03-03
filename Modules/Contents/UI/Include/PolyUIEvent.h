@@ -31,7 +31,7 @@ namespace Polycode {
 			UIEvent();
 			virtual ~UIEvent();
 		
-			static const int EVENTBASE_UIEVENT = 0x700;
+			static const int EVENTBASE_UIEVENT = 0xA00;
 			static const int CLICK_EVENT = EVENTBASE_UIEVENT+0;
 			static const int CLOSE_EVENT = EVENTBASE_UIEVENT+1;
 			static const int OK_EVENT = EVENTBASE_UIEVENT+2;

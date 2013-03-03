@@ -96,7 +96,7 @@ class _PolyExport PhysicsScreenEvent : public Event {
 		*/		
 		Number frictionStrength;	
 			
-		static const int EVENTBASE_PHYSICSSCREENEVENT = 0x900;
+		static const int EVENTBASE_PHYSICSSCREENEVENT = 0x800;
 	
 		/**
 		* Event sent out when a collision begins

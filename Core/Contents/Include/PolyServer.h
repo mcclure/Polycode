@@ -41,7 +41,7 @@ namespace Polycode {
 		unsigned int dataSize;
 		unsigned short dataType;
 		
-		static const int EVENTBASE_SERVERCLIENTEVENT = 0x680;
+		static const int EVENTBASE_SERVERCLIENTEVENT = 0x780;
 		static const int EVENT_CLIENT_DATA = EVENTBASE_SERVERCLIENTEVENT+0;
 	};
 	
@@ -63,7 +63,7 @@ namespace Polycode {
 		
 		ServerClient *client;
 		
-		static const int EVENTBASE_SERVEREVENT = 0x600;
+		static const int EVENTBASE_SERVEREVENT = 0x700;
 		static const int EVENT_CLIENT_CONNECTED = EVENTBASE_SERVEREVENT+0;
 		static const int EVENT_CLIENT_DATA = EVENTBASE_SERVEREVENT+1;
 		static const int EVENT_CLIENT_DISCONNECTED = EVENTBASE_SERVEREVENT+2;
