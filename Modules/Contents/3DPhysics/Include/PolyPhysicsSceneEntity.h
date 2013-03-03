@@ -29,6 +29,7 @@ THE SOFTWARE.
 
 class btKinematicCharacterController;
 class btPairCachingGhostObject;
+class btDefaultMotionState;
 
 namespace Polycode {
 	

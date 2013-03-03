@@ -40,7 +40,7 @@ namespace Polycode {
 	class _PolyExport UIColorPicker : public UIWindow {
 		public:
 			UIColorPicker();
-			~UIColorPicker();
+			virtual ~UIColorPicker();
 			
 			void updateSelectedColor(bool updateTextFields=true);
 			void setHue(Number hueNum);			
@@ -85,6 +85,8 @@ namespace Polycode {
 			UIHSlider *alphaSlider;
 			
 			ScreenShape *mainColorRect;
+			
+			vector<ScreenLabel *> junkLabels; // Kept only to delete
 	};
 
 	class _PolyExport UIColorBox : public UIElement {

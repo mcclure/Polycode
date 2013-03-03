@@ -49,6 +49,7 @@ Scene::Scene() : EventDispatcher() {
 	ambientColor.setColor(0.0,0.0,0.0,1.0);
 	useClearColor = false;
 	ownsChildren = false;
+	ownsCamera = true;
 	CoreServices::getInstance()->getSceneManager()->addScene(this);	
 }
 
@@ -64,6 +65,7 @@ Scene::Scene(bool virtualScene) : EventDispatcher() {
 	ambientColor.setColor(0.0,0.0,0.0,1.0);	
 	useClearColor = false;
 	ownsChildren = false;
+	ownsCamera = true;
 	if (!isSceneVirtual) {
 		CoreServices::getInstance()->getSceneManager()->addScene(this);
 	}
@@ -104,7 +106,8 @@ Scene::~Scene() {
 		}
 	}
 	CoreServices::getInstance()->getSceneManager()->removeScene(this);	
-	delete defaultCamera;
+	if (ownsCamera)
+		delete defaultCamera;
 }
 
 void Scene::enableLighting(bool enable) {

@@ -48,6 +48,7 @@ PhysicsScene::PhysicsScene(int maxSubSteps, Vector3 size, bool virtualScene) : C
 }
 
 PhysicsScene::~PhysicsScene() {
+	// These MUST be deleted first
 	for(int i=0; i < collisionChildren.size(); i++) {
 		delete collisionChildren[i];
 	}	
@@ -83,7 +84,8 @@ void PhysicsScene::initPhysicsScene(Vector3 size) {
 	
 //	physicsWorld->getSolverInfo().m_solverMode |= SOLVER_RANDMIZE_ORDER;
 	physicsWorld->setGravity(btVector3(0,-10,0));
-	axisSweep->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+	ghostPairCallback = new btGhostPairCallback();
+	axisSweep->getOverlappingPairCache()->setInternalGhostPairCallback(ghostPairCallback);
 	
 	world = physicsWorld;
 	

@@ -68,6 +68,7 @@ namespace Polycode {
 
 		String executeExternalCommand(String command);
 		void openURL(String url);
+		String executeExternalCommand(String command);
 
 	private:
 		

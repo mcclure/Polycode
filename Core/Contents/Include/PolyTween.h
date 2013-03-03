@@ -134,7 +134,7 @@ namespace Polycode {
 			*/
 			BezierPathTween(Vector3 *target, BezierCurve *curve, int easeType, Number time, bool repeat=false);
 			
-			~BezierPathTween();
+			virtual ~BezierPathTween();
 			void updateCustomTween();
 
 		protected:
@@ -148,7 +148,7 @@ namespace Polycode {
 		public:
 			QuaternionTween(Quaternion *target, BezierCurve *wCurve, BezierCurve *xCurve, BezierCurve *yCurve,
 							BezierCurve *zCurve, int easeType, Number time, bool repeat=false);
-			~QuaternionTween();
+			virtual ~QuaternionTween();
 			void updateCustomTween();
 		protected:
 			Number pathValue;

@@ -38,7 +38,7 @@ namespace Polycode {
 	class _PolyExport UIWindow : public ScreenEntity {
 		public:
 			UIWindow(String windowName, Number width, Number height);
-			~UIWindow();
+			virtual ~UIWindow();
 			
 			void showWindow();
 			void hideWindow();
@@ -71,5 +71,8 @@ namespace Polycode {
 			UIImageButton *closeBtn;
 			UIBox *windowRect;
 			ScreenShape *titlebarRect;
+		
+			bool tweenClosing;
+			void resetTween();
 	};
 }

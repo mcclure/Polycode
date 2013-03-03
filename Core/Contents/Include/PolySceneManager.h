@@ -33,7 +33,7 @@ namespace Polycode {
 	class _PolyExport SceneManager : public PolyBase {
 		public:
 		SceneManager();
-		~SceneManager();
+		virtual ~SceneManager();
 		
 		void addScene(Scene *newScene);
 		void Update();

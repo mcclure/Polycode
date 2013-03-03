@@ -49,6 +49,7 @@ SceneMesh::SceneMesh(const String& fileName) : SceneEntity(), texture(NULL), mat
 	lineSmooth = false;
 	ownsMesh = true;
 	ownsSkeleton = true;
+	ownsTexture = false;
 	lineWidth = 1.0;
 }
 
@@ -62,6 +63,7 @@ SceneMesh::SceneMesh(Mesh *mesh) : SceneEntity(), texture(NULL), material(NULL),
 	lineSmooth = false;
 	ownsMesh = true;
 	ownsSkeleton = true;	
+	ownsTexture = false;
 	lineWidth = 1.0;
 		
 }
@@ -76,6 +78,7 @@ SceneMesh::SceneMesh(int meshType) : texture(NULL), material(NULL), skeleton(NUL
 	lineSmooth = false;
 	ownsMesh = true;
 	ownsSkeleton = true;	
+	ownsTexture = false;
 	lineWidth = 1.0;	
 }
 
@@ -84,7 +87,8 @@ void SceneMesh::setMesh(Mesh *mesh) {
 	bBoxRadius = mesh->getRadius();
 	bBox = mesh->calculateBBox();
 	showVertexNormals = false;	
-	useVertexBuffer = false;	
+	useVertexBuffer = false;
+	ownsMesh = false;
 }
 
 
@@ -93,6 +97,8 @@ SceneMesh::~SceneMesh() {
 		delete skeleton;
 	if(ownsMesh)
 		delete mesh;	
+	if (ownsTexture)
+		delete texture;
 	delete localShaderOptions;
 }
 
@@ -102,6 +108,7 @@ Mesh *SceneMesh::getMesh() {
 
 void SceneMesh::setTexture(Texture *texture) {
 	this->texture = texture;
+	ownsTexture = false;
 }
 
 void SceneMesh::clearMaterial() {
@@ -145,17 +152,20 @@ Texture *SceneMesh::getTexture() {
 
 void SceneMesh::loadTexture(const String& fileName, bool clamp) {
 	texture = CoreServices::getInstance()->getMaterialManager()->createTextureFromFile(fileName, clamp);
+	ownsTexture = false; // Texture is owned by material manager, not mesh.
 }
 
 ShaderBinding *SceneMesh::getLocalShaderOptions() {
 	return localShaderOptions;
 }
 
+// TODO: What if setSkeleton or loadSkeleton gets called twice?
 void SceneMesh::loadSkeleton(const String& fileName) {
 	skeleton = new Skeleton(fileName);
 	addEntity(skeleton);
 	
 	setSkeleton(skeleton);
+	ownsSkeleton = true;
 }
 
 void SceneMesh::setSkeleton(Skeleton *skeleton) {
@@ -169,7 +179,8 @@ void SceneMesh::setSkeleton(Skeleton *skeleton) {
 				vertex->getBoneAssignment(k)->bone = skeleton->getBone(vertex->getBoneAssignment(k)->boneID);
 			}
 		}
-	}	
+	}
+	ownsSkeleton = false;
 }
 
 Material *SceneMesh::getMaterial() {

@@ -25,6 +25,7 @@
 #include "PolyVector3.h"
 #include "PolyString.h"
 
+#if POLYCODE_USE_OPENAL
 #include "al.h"
 #include "alc.h"
 
@@ -35,6 +36,11 @@
 #define ALInvalidOpStr "AL error: the requested operation is not valid"
 #define ALOutOfMemoryStr "AL error: the requested operation resulted in OpenAL running out of memory"
 #define ALOtherErrorStr "AL error: unknown error"
+#else
+typedef unsigned int ALuint;
+typedef int ALsizei;
+typedef int ALenum;
+#endif
 
 #define BUFFER_SIZE 32768
 

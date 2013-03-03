@@ -67,6 +67,8 @@ namespace Polycode {
 			void Update(int elapsed);
 			
 			void setCore(Core *core);
+		
+			void setupBasicListeners();
 			
 			/**
 			* Returns the core. 
@@ -152,7 +154,7 @@ namespace Polycode {
 			*/	
 			bool drawScreensFirst;
 					
-			~CoreServices();
+			virtual ~CoreServices();
 		
 			void *focusedChild;
 			

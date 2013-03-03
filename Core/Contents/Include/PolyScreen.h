@@ -76,7 +76,7 @@ namespace Polycode {
 		virtual void Shutdown();
 		virtual void Update();
 				
-		void Render();
+		virtual void Render();
 		void setRenderer(Renderer *renderer);
 
 		/**
@@ -127,12 +127,6 @@ namespace Polycode {
 		* If set to true, will process touch events as mouse clicks. Defaults to false.
 		*/		
 		bool processTouchEventsAsMouse;
-		
-		/**
-		* If ownsChildren is set to true, the scene will delete its children upon destruction (defaults to false).
-		*/
-		bool ownsChildren;		
-		
 
 		ScreenEntity rootEntity;
 				

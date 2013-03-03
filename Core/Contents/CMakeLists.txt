@@ -72,8 +72,6 @@ SET(polycore_SRCS
     Source/PolyScreenEntityInstance.cpp
     Source/PolyShader.cpp
     Source/PolySkeleton.cpp
-    Source/PolySound.cpp
-    Source/PolySoundManager.cpp
     Source/PolyString.cpp
     Source/PolyTexture.cpp
     Source/PolyThreaded.cpp
@@ -202,6 +200,25 @@ SET(CMAKE_DEBUG_POSTFIX "_d")
 #   Include/PolyGLES1Texture.h
 #   Source/PolyGLES1Renderer.cpp
 #   Source/PolyGLES1Texture.cpp
+
+# option specific
+IF (POLYCODE_USE_OPENAL)
+	IF(MSVC)
+		add_definitions( /DPOLYCODE_USE_OPENAL )
+	ELSE(MSVC)
+		add_definitions( -DPOLYCODE_USE_OPENAL )
+	ENDIF(MSVC)
+	
+	SET(polycore_SRCS ${polycore_SRCS}
+		Source/PolySound.cpp
+		Source/PolySoundManager.cpp
+	)
+ELSE(POLYCODE_USE_OPENAL)
+	SET(polycore_SRCS ${polycore_SRCS}
+		Source/PolyStubSound.cpp
+		Source/PolyStubSoundManager.cpp
+	)
+ENDIF(POLYCODE_USE_OPENAL)
 
 # platform specific
 IF (MINGW)

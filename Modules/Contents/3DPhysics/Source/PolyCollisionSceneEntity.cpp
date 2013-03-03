@@ -162,6 +162,6 @@ SceneEntity *CollisionSceneEntity::getSceneEntity() {
 }
 
 CollisionSceneEntity::~CollisionSceneEntity() {
-	delete shape;
+	delete shape; // Do not delete convexShape or concaveShape; these are aliases for shape
 	delete collisionObject;
 }

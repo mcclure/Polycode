@@ -131,8 +131,8 @@ namespace Polycode {
 		*/
 		SceneEntity *getEntityAtScreenPosition(Number x, Number y);
 		
-		void Render(Camera *targetCamera = NULL);
-		void RenderDepthOnly(Camera *targetCamera);
+		virtual void Render(Camera *targetCamera = NULL);
+		virtual void RenderDepthOnly(Camera *targetCamera);
 		
 		static String readString(OSFILE *inFile);
 		void loadScene(const String& fileName);
@@ -202,6 +202,11 @@ namespace Polycode {
 		* If ownsChildren is set to true, the scene will delete its children upon destruction (defaults to false).
 		*/
 		bool ownsChildren;
+		
+		/**
+		 * If set to true, camera will be deleted when the screen is deleted. Defaults true, automatically set false when a camera passed in.
+		 */
+		bool ownsCamera;
 		
 	protected:
 		

@@ -158,6 +158,11 @@ namespace Polycode {
 			* If true, will delete its Skeleton upon destruction. (defaults to true)
 			*/ 			
 			bool ownsSkeleton;
+			
+			/**
+			 * If true, will delete its Texture upon destruction. (defaults to false)
+			 */
+			bool ownsTexture;
 		
 		protected:
 		

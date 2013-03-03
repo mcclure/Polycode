@@ -40,7 +40,7 @@ namespace Polycode {
 	class _PolyExport BoneTrack : public PolyBase {
 		public:
 			BoneTrack(Bone *bone, Number length);
-			~BoneTrack();
+			virtual ~BoneTrack();
 			void Play(bool once=false);
 			void Stop();
 			void Update();
@@ -94,7 +94,7 @@ namespace Polycode {
 		public:
 		
 			SkeletonAnimation(const String& name, Number duration);
-			~SkeletonAnimation();		
+			virtual ~SkeletonAnimation();		
 			
 			/**
 			* Adds a new bone track
