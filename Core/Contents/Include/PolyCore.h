@@ -307,9 +307,10 @@ namespace Polycode {
 		void setUserPointer(void *ptr) { userPointer = ptr; }
 		void *getUserPointer() { return userPointer; }
 		
-		static const int EVENT_CORE_RESIZE = 0;		
-		static const int EVENT_LOST_FOCUS = 1;
-		static const int EVENT_GAINED_FOCUS = 2;
+		static const int EVENTBASE_CORE = 0x200;
+		static const int EVENT_CORE_RESIZE = EVENTBASE_CORE+0;
+		static const int EVENT_LOST_FOCUS = EVENTBASE_CORE+1;
+		static const int EVENT_GAINED_FOCUS = EVENTBASE_CORE+2;
 		
 		virtual String executeExternalCommand(String command) = 0;
 		
