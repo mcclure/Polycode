@@ -130,7 +130,23 @@ void SDLCore::openURL(String url) {
 }
 
 String SDLCore::executeExternalCommand(String command) {
+	FILE *fp = popen(command.c_str(), "r");
+	if(!fp) {
+		return "Unable to execute command";
+	}	
 	
+	int fd = fileno(fp);
+	
+	char path[1024];
+	String retString;
+	
+	while (fgets(path, sizeof(path), fp) != NULL) {
+		retString = retString + String(path);
+	}
+
+	fclose(fp);
+	pclose(fp);
+	return retString;
 }
 
 int SDLThreadFunc(void *data) {
@@ -267,25 +283,5 @@ vector<String> SDLCore::openFilePicker(vector<CoreFileExtension> extensions, boo
 
 void SDLCore::resizeTo(int xRes, int yRes) {
 	renderer->Resize(xRes, yRes);
-}
-
-String SDLCore::executeExternalCommand(String command) {
-	FILE *fp = popen(command.c_str(), "r");
-	if(!fp) {
-		return "Unable to execute command";
-	}	
-	
-	int fd = fileno(fp);
-	
-	char path[1024];
-	String retString;
-	
-	while (fgets(path, sizeof(path), fp) != NULL) {
-		retString = retString + String(path);
-	}
-
-	fclose(fp);
-	pclose(fp);
-	return retString;
 }
 
