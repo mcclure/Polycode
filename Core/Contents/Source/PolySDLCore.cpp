@@ -34,6 +34,12 @@
 #include <SDL/SDL.h>
 #include <iostream>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <pwd.h>
+
 using namespace Polycode;
 using std::vector;
 
@@ -49,11 +55,25 @@ void Core::getScreenInfo(int *width, int *height, int *hz) {
 	if (hz) *hz = 0;
 }
 
-SDLCore::SDLCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex) : Core(_xRes, _yRes, fullScreen, vSync, aaLevel, anisotropyLevel, frameRate, monitorIndex) {
+SDLCore::SDLCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex, bool resizableWindow) : Core(_xRes, _yRes, fullScreen, vSync, aaLevel, anisotropyLevel, frameRate, monitorIndex) {
+
+	this->resizableWindow = resizableWindow;
+
+	char *buffer = getcwd(NULL, 0);
+	defaultWorkingDirectory = String(buffer);
+	free(buffer);
+
+	struct passwd *pw = getpwuid(getuid());
+	const char *homedir = pw->pw_dir;
+	userHomeDirectory = String(homedir);
 
 	String *windowTitle = (String*)view->windowData;
 
-	putenv("SDL_VIDEO_CENTERED=1");
+	if(resizableWindow) {
+		unsetenv("SDL_VIDEO_CENTERED");
+	} else {
+		setenv("SDL_VIDEO_CENTERED", "1", 1);
+	}
 
 	if(SDL_Init(SDL_INIT_VIDEO) < 0) {
 	}
@@ -95,16 +115,20 @@ void SDLCore::setVideoMode(int xRes, int yRes, bool fullScreen, bool vSync, int 
 	
 	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 0);
 	
+	flags = SDL_OPENGL;
+
 	if(fullScreen) {
-		if( SDL_SetVideoMode(xRes, yRes, 0, SDL_OPENGL|SDL_FULLSCREEN) == NULL ) {
-		}	
-	} else {
-		if( SDL_SetVideoMode(xRes, yRes, 0, SDL_OPENGL) == NULL ) {
-		}
+		flags |= SDL_FULLSCREEN;
 	}
+
+	if(resizableWindow) {
+		flags |= SDL_RESIZABLE;
+	}
+	SDL_SetVideoMode(xRes, yRes, 0, flags);
 	
 	renderer->Resize(xRes, yRes);
-	CoreServices::getInstance()->getMaterialManager()->reloadProgramsAndTextures();
+	//CoreServices::getInstance()->getMaterialManager()->reloadProgramsAndTextures();
+	dispatchEvent(new Event(), EVENT_CORE_RESIZE);	
 }
 
 vector<Polycode::Rectangle> SDLCore::getVideoModes() {
@@ -127,6 +151,13 @@ SDLCore::~SDLCore() {
 }
 
 void SDLCore::openURL(String url) {
+    int childExitStatus;
+    pid_t pid = fork();
+    if (pid == 0) {
+	execl("/usr/bin/xdg-open", "/usr/bin/xdg-open", url.c_str(), (char *)0);
+    } else {
+        pid_t ws = waitpid( pid, &childExitStatus, WNOHANG);
+    }
 }
 
 String SDLCore::executeExternalCommand(String command) {
@@ -134,17 +165,16 @@ String SDLCore::executeExternalCommand(String command) {
 	if(!fp) {
 		return "Unable to execute command";
 	}	
-	
+
 	int fd = fileno(fp);
-	
-	char path[1024];
+
+	char path[2048];
 	String retString;
-	
+
 	while (fgets(path, sizeof(path), fp) != NULL) {
 		retString = retString + String(path);
 	}
 
-	fclose(fp);
 	pclose(fp);
 	return retString;
 }
@@ -173,7 +203,7 @@ void SDLCore::enableMouse(bool newval) {
 	}
 	Core::enableMouse(newval);
 }
-	
+
 bool SDLCore::Update() {
 	if(!running)
 		return false;
@@ -188,6 +218,18 @@ bool SDLCore::Update() {
 			switch (event.type) {
 				case SDL_QUIT:
 					running = false;
+				break;
+				case SDL_VIDEORESIZE:
+	if(resizableWindow) {
+		unsetenv("SDL_VIDEO_CENTERED");
+	} else {
+		setenv("SDL_VIDEO_CENTERED", "1", 1);
+	}
+					this->xRes = event.resize.w;
+					this->yRes = event.resize.h;
+					SDL_SetVideoMode(xRes, yRes, 0, flags);
+					renderer->Resize(xRes, yRes);	
+					dispatchEvent(new Event(), EVENT_CORE_RESIZE);	
 				break;
 				case SDL_JOYBUTTONDOWN:
 //					input->setKeyState((PolyKEY)(event.key.keysym.sym), true);
@@ -204,13 +246,33 @@ bool SDLCore::Update() {
 					} else if(event.button.button == SDL_BUTTON_WHEELDOWN) {
 						input->mouseWheelDown(getTicks());
 					} else {
-						input->setMouseButtonState(CoreInput::MOUSE_BUTTON1, true, getTicks());
+						switch(event.button.button) {
+							case SDL_BUTTON_LEFT:
+								input->setMouseButtonState(CoreInput::MOUSE_BUTTON1, true, getTicks());
+							break;
+							case SDL_BUTTON_RIGHT:
+								input->setMouseButtonState(CoreInput::MOUSE_BUTTON2, true, getTicks());
+							break;
+							case SDL_BUTTON_MIDDLE:
+								input->setMouseButtonState(CoreInput::MOUSE_BUTTON3, true, getTicks());
+							break;
+						}
 					}
 				break;
 				case SDL_MOUSEBUTTONUP:
 					if(event.button.button == SDL_BUTTON_WHEELUP || event.button.button == SDL_BUTTON_WHEELDOWN) {						
 					} else {
-						input->setMouseButtonState(CoreInput::MOUSE_BUTTON1, false, getTicks());
+						switch(event.button.button) {
+							case SDL_BUTTON_LEFT:
+								input->setMouseButtonState(CoreInput::MOUSE_BUTTON1, false, getTicks());
+							break;
+							case SDL_BUTTON_RIGHT:
+								input->setMouseButtonState(CoreInput::MOUSE_BUTTON2, false, getTicks());
+							break;
+							case SDL_BUTTON_MIDDLE:
+								input->setMouseButtonState(CoreInput::MOUSE_BUTTON3, false, getTicks());
+							break;
+						}
 					}
 				break;
 				case SDL_MOUSEMOTION:
@@ -259,18 +321,37 @@ String SDLCore::getClipboardString() {
 }
 
 void SDLCore::createFolder(const String& folderPath) {
-
+	mkdir(folderPath.c_str(), 0700);
 }
 
 void SDLCore::copyDiskItem(const String& itemPath, const String& destItemPath) {
-
+    int childExitStatus;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/bin/cp", "/bin/cp", "-R", itemPath.c_str(), destItemPath.c_str(), (char *)0);
+    } else {
+        pid_t ws = waitpid( pid, &childExitStatus, 0);
+    }
 }
 
 void SDLCore::moveDiskItem(const String& itemPath, const String& destItemPath) {
-
+    int childExitStatus;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/bin/mv", "/bin/mv", itemPath.c_str(), destItemPath.c_str(), (char *)0);
+    } else {
+        pid_t ws = waitpid( pid, &childExitStatus, 0);
+    }
 }
 
 void SDLCore::removeDiskItem(const String& itemPath) {
+    int childExitStatus;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/bin/rm", "/bin/rm", "-rf", itemPath.c_str(), (char *)0);
+    } else {
+        pid_t ws = waitpid( pid, &childExitStatus, 0);
+    }
 }
 
 String SDLCore::openFolderPicker() {

@@ -26,6 +26,8 @@
 #include "PolyCore.h"
 #include <vector>
 
+#define POLYCODE_CORE SDLCore
+
 struct SDL_mutex;
 
 namespace Polycode {
@@ -41,7 +43,7 @@ namespace Polycode {
 		
 	public:
 		
-		SDLCore(PolycodeView *view, int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex=-1);
+		SDLCore(PolycodeView *view, int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex=-1, bool resizableWindow = false);
 		~SDLCore();
 
 		void enableMouse(bool newval);
@@ -70,8 +72,8 @@ namespace Polycode {
 		void openURL(String url);
 
 	private:
-		
-		
+		uint32_t flags;
+		bool resizableWindow;
 		
 	};
 }

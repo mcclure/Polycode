@@ -27,25 +27,57 @@
 #include "PolyScreenEntity.h"
 #include "PolyUIEvent.h"
 #include "PolyUIBox.h"
+#include "PolyUIMenu.h"
 #include "PolyUIElement.h"
+#include "PolyInputEvent.h"
 
 namespace Polycode {
 
-	class _PolyExport UIButton : public UIElement {
+	class UIMenuBarEntryItem {
 		public:
-			UIButton(String text, Number width, Number height = 23);
-			~UIButton();		
-			void handleEvent(Event *event);
+			UIMenuBarEntryItem(String name, String code) { this->name = name; this->code = code; }
+			String name;	
+			String code;
+	};
+
+	class _PolyExport UIMenuBarEntry : public UIElement {
+		public:
+			UIMenuBarEntry(String name);
+			~UIMenuBarEntry();		
+			void addItem(String name, String code);
+
+			void Select();
+			void Deselect();
+
+			ScreenShape *bg;
+			ScreenLabel *label;
+
+			std::vector<UIMenuBarEntryItem> items;
+
+	};
+	
+	class _PolyExport UIMenuBar : public UIElement {
+		public:
+			UIMenuBar(int width, UIGlobalMenu *globalMenu);
+			~UIMenuBar();
+
+			void handleEvent(Event *event);	
+
+			void showMenuForEntry(UIMenuBarEntry *entry);
+			void Resize(Number width, Number height);
+			UIMenuBarEntry *addMenuBarEntry(String name);
 			
-			void Update();
-				
-		private:
+			String getSelectedItem();
+		protected:
+			UIMenu *dropMenu;
+			UIGlobalMenu *globalMenu;
+			int entryOffset;
 			
-			Number labelXPos;
-			Number labelYPos;
-			UIBox *buttonRect;
-			UIBox *buttonFocusedRect;		
-			ScreenLabel *buttonLabel;
-			bool pressedDown;
+			bool holdingMouse;
+
+			String selectedItem;
+			ScreenShape *bgShape;
+			std::vector<UIMenuBarEntry*> entries;
+			UIMenuBarEntry *currentEntry;
 	};
 }

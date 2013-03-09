@@ -99,6 +99,8 @@
 #define NO_TOUCH_API 1
 #endif
 
+#define POLYCODE_CORE Win32Core
+
 namespace Polycode {
 
 	class _PolyExport Win32Mutex : public CoreMutex {
