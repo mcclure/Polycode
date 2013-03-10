@@ -47,6 +47,9 @@ Sound::Sound(const char *data, int size, int channels, int freq, int bps) : samp
 Sound::~Sound() {
 }
 
+void Sound::loadFile(String fileName) {
+}
+
 void Sound::soundCheck(bool result, const String& err) {
 }
 
@@ -71,7 +74,14 @@ bool Sound::isPlaying() {
 void Sound::setVolume(Number newVolume) {
 }
 
+Number Sound::getVolume() {
+	return 0;
+}
+
 void Sound::setPitch(Number newPitch) {
+}
+
+Number Sound::getPitch() {
 }
 
 void Sound::setSoundPosition(Vector3 position) {
@@ -86,6 +96,9 @@ void Sound::setSoundDirection(Vector3 direction) {
 void Sound::setOffset(int off) {
 }
 
+String Sound::getFileName() {
+	return String();
+}
 
 Number Sound::getPlaybackTime() {
 	return 0;
@@ -109,11 +122,26 @@ int Sound::getSampleLength() {
 void Sound::setPositionalProperties(Number referenceDistance, Number maxDistance) { 
 }
 
+void Sound::setReferenceDistance(Number referenceDistance) {
+}
+
+void Sound::setMaxDistance(Number maxDistance) {
+}
+
+Number Sound::getReferenceDistance() {
+	return 0;
+}
+
+Number Sound::getMaxDistance() {
+	return 0;
+}
+
 void Sound::setIsPositional(bool isPositional) {
 	this->isPositional = isPositional;
 }
 
-void Sound::checkALError(const String& operation) {
+ALenum Sound::checkALError(const String& operation) {
+	return 0;
 }
 
 void Sound::Stop() {
