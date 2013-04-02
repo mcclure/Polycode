@@ -38,6 +38,8 @@
 #include <IOKit/hid/IOHIDLib.h>
 #import <Cocoa/Cocoa.h>
 
+#define POLYCODE_CORE CocoaCore
+
 using std::vector;
 
 @class PolycodeView;
@@ -117,7 +119,7 @@ namespace Polycode {
 		String openFolderPicker();
 		vector<String> openFilePicker(vector<CoreFileExtension> extensions, bool allowMultiple);
 		
-		String executeExternalCommand(String command);
+		String executeExternalCommand(String command, String args, String inDirectory="");
 		
 		void launchApplicationWithFile(String application, String file);
 		void openFileWithApplication(String file, String application);
@@ -152,6 +154,8 @@ namespace Polycode {
 				
 		vector<GamepadDeviceEntry*> gamepads;
 		unsigned int nextDeviceID;
+		
+		bool checkSpecialKeyEvents(PolyKEY key);		
 				
 	protected:	
 		PolycodeView *glView;

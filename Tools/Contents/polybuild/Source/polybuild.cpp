@@ -5,6 +5,7 @@
 
 #ifdef _WINDOWS
 	#include <windows.h>
+	#include <direct.h>
 #else
 	#include <dirent.h>
 	#include <sys/types.h>
@@ -20,7 +21,7 @@
 using std::vector;
 
 vector<BuildArg> args;
-#define MAXFILENAME (256)
+#define MAXFILENAME (2048)
 
 String getArg(String argName) {
 	/*
@@ -195,6 +196,7 @@ int main(int argc, char **argv) {
 			BuildArg arg;
 			arg.name = bits[0];
 			arg.value = bits[1];
+		//	printf("arg: %s=%s\n", arg.name.c_str(), arg.value.c_str());
 			args.push_back(arg);
 		}
 		
@@ -221,12 +223,13 @@ int main(int argc, char **argv) {
 #else
 	getcwd(dirPath, sizeof(dirPath));
 #endif
+
 	String currentPath = String(dirPath);
 
 	String configPath = getArg("--config");
 
 	String finalPath = configPath;
-	if(configPath[0] != '/') {
+	if(configPath[0] != '/' && configPath[1] !=':') {
 
 #ifdef _WINDOWS
 		finalPath = currentPath+"\\"+configPath;
@@ -234,12 +237,6 @@ int main(int argc, char **argv) {
 		finalPath = currentPath+"/"+configPath;
 #endif
 	}
-
-#ifdef _WINDOWS
-	finalPath = finalPath.replace(":", "");
-	finalPath = finalPath.replace("\\", "/");
-	finalPath = finalPath.substr(1, finalPath.length() - 1);
-#endif
 
 	printf("Reading config file from %s\n", finalPath.c_str());
 
@@ -429,7 +426,13 @@ int main(int argc, char **argv) {
 	
 	zipClose(z, "");	
 
+#ifdef _WINDOWS
+	char *buffer = _getcwd(NULL, 0);
+	String workingDir = String(buffer);
+	free(buffer);
+	OSBasics::removeItem(workingDir+"/runinfo_tmp_zzzz.polyrun");
+#else
 	OSBasics::removeItem("runinfo_tmp_zzzz.polyrun");
-
+#endif
 	return 0;
 }

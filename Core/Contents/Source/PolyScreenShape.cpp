@@ -71,6 +71,19 @@ void ScreenShape::operator=(const ScreenShape& copy) {
 
 }
 
+Entity *ScreenShape::Clone(bool deepClone, bool ignoreEditorOnly) {
+	ScreenShape *newEntity = new ScreenShape(ScreenShape::SHAPE_RECT, 1,1);
+	applyClone(newEntity, deepClone, ignoreEditorOnly);
+	return newEntity;
+
+}
+
+void ScreenShape::applyClone(Entity *clone, bool deepClone, bool ignoreEditorOnly) {
+	ScreenEntity::applyClone(clone, deepClone, ignoreEditorOnly);
+	ScreenShape *_clone = (ScreenShape*) clone;
+	*_clone = *this;
+}
+
 void ScreenShape::buildShapeMesh() {
 
 	mesh->clearMesh();
@@ -115,11 +128,6 @@ void ScreenShape::buildShapeMesh() {
 			mesh->addPolygon(poly);
 			}
 		break;
-		case SHAPE_CUSTOM:
-			mesh->setMeshType(Mesh::TRIFAN_MESH);
-			customShapePoly = new Polygon();
-			mesh->addPolygon(customShapePoly);
-		break;	
 		default:
 		break;
 	}
@@ -164,10 +172,6 @@ void ScreenShape::setShapeSize(Number newWidth, Number newHeight) {
 		
 	rebuildTransformMatrix();
 	matrixDirty = true;
-}
-
-void ScreenShape::addShapePoint(Number x, Number y) {
-	customShapePoly->addVertex(x,y,0,0,0);
 }
 
 void ScreenShape::setGradient(Number r1, Number g1, Number b1, Number a1, Number r2, Number g2, Number b2, Number a2) {

@@ -30,14 +30,6 @@ THE SOFTWARE.
 #include "PolyCoreServices.h"
 #include "PolyThreaded.h"
 
-#define CURSOR_ARROW 0
-#define CURSOR_TEXT 1
-#define CURSOR_POINTER 2
-#define CURSOR_CROSSHAIR 3
-#define CURSOR_RESIZE_LEFT_RIGHT 4
-#define CURSOR_RESIZE_UP_DOWN 5
-#define CURSOR_OPEN_HAND 6
-
 long getThreadID();
 
 namespace Polycode {
@@ -249,8 +241,10 @@ namespace Polycode {
 		/**
 		* Opens a system folder picker and suspends operation.
 		* @return The selected path returned from the picker.
-		*/																					
+		*/
 		virtual String openFolderPicker() = 0;
+
+		void setFramerate(int frameRate);
 		
 		/**
 		* Opens a system file picker for the specified extensions.
@@ -311,8 +305,15 @@ namespace Polycode {
 		static const int EVENT_CORE_RESIZE = EVENTBASE_CORE+0;
 		static const int EVENT_LOST_FOCUS = EVENTBASE_CORE+1;
 		static const int EVENT_GAINED_FOCUS = EVENTBASE_CORE+2;
+
+		static const int EVENT_UNDO = EVENTBASE_CORE+3;
+		static const int EVENT_REDO = EVENTBASE_CORE+4;
+		static const int EVENT_COPY = EVENTBASE_CORE+5;
+		static const int EVENT_CUT = EVENTBASE_CORE+6;
+		static const int EVENT_SELECT_ALL = EVENTBASE_CORE+7;
+		static const int EVENT_PASTE = EVENTBASE_CORE+8;
 		
-		virtual String executeExternalCommand(String command) = 0;
+		virtual String executeExternalCommand(String command, String args, String inDirectory) = 0;
 		
 		/**
 		* Returns the default working path of the application.
@@ -334,8 +335,20 @@ namespace Polycode {
 		
 		void removeThread(Threaded *thread);
 		
+		static const int CURSOR_ARROW = 0;
+		static const int CURSOR_TEXT = 1;
+		static const int CURSOR_POINTER = 2;
+		static const int CURSOR_CROSSHAIR = 3;
+		static const int CURSOR_RESIZE_LEFT_RIGHT = 4;
+		static const int CURSOR_RESIZE_UP_DOWN = 5;
+		static const int CURSOR_OPEN_HAND = 6;		
+		
+		bool paused;
+		bool pauseOnLoseFocus;
 				
 	protected:	
+	
+		virtual bool checkSpecialKeyEvents(PolyKEY key) { return false; }
 	
 		void loseFocus();
 		void gainFocus();

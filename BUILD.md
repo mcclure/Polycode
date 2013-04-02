@@ -47,9 +47,9 @@ may prefer to use the CMake GUI if unfamiliar with CMake.
 
 ### Mac OS X and Xcode ###
 
-NOTE: If you are using the new XCode that is downloaded from the AppStore
-and cmake complains about not finding XCode in /Developer, you have to run this
-command to update the XCode path:
+NOTE: If you are using the new Xcode that is downloaded from the AppStore
+and cmake complains about not finding Xcode in /Developer, you have to run this
+command to update the Xcode path:
 sudo /usr/bin/xcode-select -switch /Applications/Xcode.app/Contents/Developer
 
 To generate an Xcode project for building Polycode dependencies, perform
@@ -194,6 +194,10 @@ which are disabled by default. To do this, you need to add a couple
 of variables to the cmake commands above. To build the bindings, you
 need a python installation with the PLY python module. You can get
 the PLY module at http://www.dabeaz.com/ply/
+
+Note: You will need python 2 for this step. If you have python 3 installed,
+pass -DPYTHON_EXECUTABLE=/usr/bin/python2 or whatever the full path to
+the python2 executable is on your system.
 
 To enable the bindings and the player, add the following options to the
 cmake command. Otherwise, the steps are exactly the same as the regular 

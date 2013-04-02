@@ -1,5 +1,6 @@
+
 /*
- Copyright (C) 2011 by Ivan Safrin
+ Copyright (C) 2012 by Ivan Safrin
  
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -18,35 +19,33 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
-*/
+ */
 
-#include "PolyScreenCurve.h"
-#include "PolyBezierCurve.h"
-#include "PolyMesh.h"
-#include "PolyPolygon.h"
+#include "PolycodeClipboard.h"
 
-using namespace Polycode;
-
-ScreenCurve::ScreenCurve(BezierCurve *curve, int numVertices) : ScreenShape(ScreenShape::SHAPE_CUSTOM) {
-	this->curve = curve;
-	this->numVertices = numVertices;
-	
-	mesh->setMeshType(Mesh::TRIFAN_MESH);
-	
-	Polygon *poly = new Polygon();
-
-	Color c;
-	Number interval = 1.0f/numVertices;
-	Vector3 vec;
-	Number offset = 1.0f;
-	Vertex *v;
-	for(int i=0; i < numVertices; i++) {
-		vec = curve->getPointAt(offset);
-		v = poly->addVertex(vec.x, vec.y, 0);
-		offset -= interval;
-	}	
-	mesh->addPolygon(poly);
+PolycodeClipboard::PolycodeClipboard() {
+	data = NULL;
 }
 
-ScreenCurve::~ScreenCurve() {
+void PolycodeClipboard::setData(void *data, String type, ClipboardProvider *provider) {
+	if(!data)
+		return;
+
+	if(this->data) {
+		currentProvider->destroyClipboardData(this->data, this->type);
+		this->data = NULL;
+		currentProvider = NULL;
+	}
+	
+	this->data = data;
+	this->type = type;
+	currentProvider = provider;
+}
+
+void *PolycodeClipboard::getData() {
+	return data;
+}
+
+String PolycodeClipboard::getType() {
+	return type;
 }

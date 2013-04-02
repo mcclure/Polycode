@@ -32,6 +32,7 @@
 #include "NewFileWindow.h"
 #include "ToolWindows.h"
 #include "PolycodeProjectManager.h"
+#include "PolycodeEditorManager.h"
 
 using namespace Polycode;
 
@@ -156,10 +157,14 @@ public:
 	~PolycodeFrame();
 	
 	void Resize(int x, int y);
+
+	void Update();
 	
 	void showModal(UIWindow *modalChild);
 	void hideModal();
 	
+	void showFileBrowser(String baseDir, bool foldersOnly, std::vector<String> extensions, bool allowMultiple);
+
 	void handleEvent(Event *event);
 	
 	void addEditor(PolycodeEditor *editor);
@@ -183,6 +188,7 @@ public:
 	
 	ScreenEntity *welcomeEntity;	
 	PolycodeProjectBrowser *projectBrowser;
+	PolycodeEditorManager *editorManager;
 		
 	UIImageButton *playButton;
 	UIImageButton *stopButton;
@@ -195,11 +201,21 @@ public:
 		
 	CurveEditor *curveEditor;
 	
+	UIElement *modalRoot;
+	UIElement *fileBrowserRoot;
+	UIFileDialog *fileDialog;
+	
+	UIWindow *aboutWindow;
+	UIButton *aboutOKButton;
 private:
 	
 	int frameSizeX;
 	int frameSizeY;
 	
+	bool willHideModal;
+
+	ScreenShape *fileDialogBlocker;
+
 	ScreenShape *topBarBg;
 	ScreenImage *logo;	
 	ScreenImage *resizer;	
@@ -208,6 +224,9 @@ private:
 	ScreenEntity *dragEntity;
 	ScreenLabel *dragLabel;
 	bool isDragging;
+	
+	ScreenLabel *currentProjectTitle;
+	UIComboBox *currentFileSelector;
 	
 	ScreenImage *welcomeImage;	
 	
