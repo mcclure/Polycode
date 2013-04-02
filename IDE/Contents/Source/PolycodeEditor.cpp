@@ -22,6 +22,8 @@
 
 #include "PolycodeEditor.h"
 
+extern PolycodeClipboard *globalClipboard;
+
 PolycodeEditorFactory::PolycodeEditorFactory() {
 	
 }
@@ -42,10 +44,46 @@ void PolycodeEditor::setFilePath(String newPath) {
 	filePath = newPath;
 }
 
-PolycodeEditor::PolycodeEditor(bool _isReadOnly) : ScreenEntity() {
+PolycodeEditor::PolycodeEditor(bool _isReadOnly) : ScreenEntity(), ClipboardProvider() {
 	this->_isReadOnly = _isReadOnly;
 	enableScissor = true;	
 	processInputEvents = true;
+	_hasChanges = false;
+
+	Core *core = CoreServices::getInstance()->getCore();
+	
+	core->addEventListener(this, Core::EVENT_COPY);
+	core->addEventListener(this, Core::EVENT_PASTE);
+}
+
+void PolycodeEditor::setHasChanges(bool newVal) {
+	if(_hasChanges != newVal) {
+		_hasChanges = newVal;	
+		dispatchEvent(new Event(), Event::CHANGE_EVENT);
+	}
+}
+
+void PolycodeEditor::handleEvent(Event *event) {
+	if(event->getDispatcher() == CoreServices::getInstance()->getCore()) {
+		switch(event->getEventCode()) {
+			case Core::EVENT_COPY:
+			{
+				void *data = NULL;
+				String dataType = Copy(&data);
+				if(data) {
+					globalClipboard->setData(data, dataType, this);
+				}
+			}
+			break;
+			case Core::EVENT_PASTE:
+			{
+				if(globalClipboard->getData()) {
+					Paste(globalClipboard->getData(), globalClipboard->getType());
+				}
+			}
+			break;
+		}
+	}
 }
 
 void PolycodeEditor::Resize(int x, int y) {

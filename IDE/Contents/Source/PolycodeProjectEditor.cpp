@@ -48,7 +48,7 @@ ProjectFontEntry::ProjectFontEntry(String fontPath, String fontName) : UIElement
 	removeButton->addEventListener(this, UIEvent::CLICK_EVENT);
 	addChild(removeButton);
 
-	fontNameInput = new UITextInput(false, 100, 23);
+	fontNameInput = new UITextInput(false, 100, 13);
 	fontNameInput->setText(fontName);
 	fontNameInput->setPosition(20, 0);
 	fontNameInput->addEventListener(this, UIEvent::CHANGE_EVENT);
@@ -59,7 +59,7 @@ ProjectFontEntry::ProjectFontEntry(String fontPath, String fontName) : UIElement
 	fontFileLabel = new ScreenLabel(entry.name, 12);
 	fontFileLabel->color.a = 0.6;
 	addChild(fontFileLabel);
-	fontFileLabel->setPosition(130, 6);
+	fontFileLabel->setPosition(140, 3);
 	
 	CoreServices::getInstance()->getFontManager()->registerFont(fontName, fontPath);
 }
@@ -84,6 +84,8 @@ ProjectFontEntry::~ProjectFontEntry() {
 }
 
 PolycodeProjectEditor::PolycodeProjectEditor(PolycodeProjectManager *projectManager) : PolycodeEditor(true){
+
+	isLoading = true;
 
 	this->projectManager = projectManager;
 
@@ -260,7 +262,18 @@ PolycodeProjectEditor::PolycodeProjectEditor(PolycodeProjectManager *projectMana
 	bgColorBox = new UIColorBox(globalColorPicker, Color(1.0, 0.5, 0.0, 0.9), 30,30);
 	bgColorBox->setPosition(label2->getPosition().x, label2->getPosition().y+18);
 	mainSettingsWindow->addChild(bgColorBox);
+	
+	vSyncCheckBox->addEventListener(this, UIEvent::CHANGE_EVENT);
+	defaultWidthInput->addEventListener(this, UIEvent::CHANGE_EVENT);
+	defaultHeightInput->addEventListener(this, UIEvent::CHANGE_EVENT);
+	framerateInput->addEventListener(this, UIEvent::CHANGE_EVENT);
+	aaLevelComboBox->addEventListener(this, UIEvent::CHANGE_EVENT);
+	afLevelComboBox->addEventListener(this, UIEvent::CHANGE_EVENT);
+	texFilteringComboBox->addEventListener(this, UIEvent::CHANGE_EVENT);
+	entryPointInput->addEventListener(this, UIEvent::CHANGE_EVENT);
+	bgColorBox->addEventListener(this, UIEvent::CHANGE_EVENT);
 
+	isLoading = false;
 }
 
 PolycodeProjectEditor::~PolycodeProjectEditor() {
@@ -272,9 +285,21 @@ void PolycodeProjectEditor::refreshFontEntries() {
 		fontEntries[i]->setPosition(0, 30*i);
 	}
 	addFontButton->setPosition(0, (fontEntries.size() * 30) + 10);
+	if(!isLoading) {
+		setHasChanges(true);
+	}
 }
 
 void PolycodeProjectEditor::handleEvent(Event *event) {
+
+	if(event->getEventType() == "UIEvent") {
+		if(event->getDispatcher() == vSyncCheckBox || event->getDispatcher() == defaultWidthInput || event->getDispatcher() == defaultHeightInput || event->getDispatcher() == framerateInput || event->getDispatcher() == aaLevelComboBox || event->getDispatcher() == afLevelComboBox || event->getDispatcher() == texFilteringComboBox  || event->getDispatcher() == entryPointInput || event->getDispatcher() == bgColorBox) {
+			if(!isLoading) {
+				setHasChanges(true);
+			}
+		}
+	}
+
 	if(event->getDispatcher() == addFontButton && event->getEventCode() == UIEvent::CLICK_EVENT && event->getEventType() == "UIEvent") {
 		globalFrame->assetBrowser->addEventListener(this, UIEvent::OK_EVENT);
 		
@@ -282,9 +307,7 @@ void PolycodeProjectEditor::handleEvent(Event *event) {
 		extensions.push_back("ttf");
 		extensions.push_back("otf");		
 		globalFrame->showAssetBrowser(extensions);		
-	}
-	
-	if(event->getDispatcher() == globalFrame->assetBrowser && event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
+	} else if(event->getDispatcher() == globalFrame->assetBrowser && event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
 		String newFontPath = globalFrame->assetBrowser->getSelectedAssetPath();
 
 		newFontPath = newFontPath.replace(parentProject->getRootFolder()+"/", "");
@@ -327,7 +350,7 @@ void PolycodeProjectEditor::handleEvent(Event *event) {
 }
 
 bool PolycodeProjectEditor::openFile(OSFileEntry filePath) {	
-	
+	isLoading = true;
 	associatedProject = projectManager->getProjectByProjectFile(filePath.fullPath);
 	if(!associatedProject) {
 		return false;
@@ -378,7 +401,7 @@ bool PolycodeProjectEditor::openFile(OSFileEntry filePath) {
 	
 	PolycodeEditor::openFile(filePath);	
 	refreshFontEntries();	
-	
+	isLoading = false;	
 	return true;
 }
 
@@ -430,4 +453,5 @@ void PolycodeProjectEditor::saveFile() {
 	associatedProject->data.vSync = vSyncCheckBox->isChecked();
 	
 	associatedProject->saveFile();
+	setHasChanges(false);
 }

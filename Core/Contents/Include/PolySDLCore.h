@@ -43,7 +43,7 @@ namespace Polycode {
 		
 	public:
 		
-		SDLCore(PolycodeView *view, int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex=-1, bool resizableWindow = false);
+		SDLCore(PolycodeView *view, int xRes, int yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex=-1);
 		~SDLCore();
 
 		void enableMouse(bool newval);
@@ -68,10 +68,13 @@ namespace Polycode {
 		std::vector<String> openFilePicker(std::vector<CoreFileExtension> extensions, bool allowMultiple);
 		void resizeTo(int xRes, int yRes);
 
-		String executeExternalCommand(String command);
+		String executeExternalCommand(String command, String args, String inDirectory="");
 		void openURL(String url);
 
+
 	private:
+		bool checkSpecialKeyEvents(PolyKEY key);
+
 		uint32_t flags;
 		bool resizableWindow;
 		

@@ -67,7 +67,7 @@ namespace Polycode {
 		static const int EVENT_CLIENT_CONNECTED = EVENTBASE_SERVEREVENT+0;
 		static const int EVENT_CLIENT_DATA = EVENTBASE_SERVEREVENT+1;
 		static const int EVENT_CLIENT_DISCONNECTED = EVENTBASE_SERVEREVENT+2;
-		// Notice also the SERVERCLIENTEVENT above, which starts with 0x680.
+		// Notice also the SERVERCLIENTEVENT above, which starts with 0x780.
 	};
 
 	class _PolyExport Server : public Peer {

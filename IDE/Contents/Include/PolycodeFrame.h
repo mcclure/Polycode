@@ -32,6 +32,7 @@
 #include "NewFileWindow.h"
 #include "ToolWindows.h"
 #include "PolycodeProjectManager.h"
+#include "PolycodeEditorManager.h"
 
 using namespace Polycode;
 
@@ -156,6 +157,8 @@ public:
 	~PolycodeFrame();
 	
 	void Resize(int x, int y);
+
+	void Update();
 	
 	void showModal(UIWindow *modalChild);
 	void hideModal();
@@ -185,6 +188,7 @@ public:
 	
 	ScreenEntity *welcomeEntity;	
 	PolycodeProjectBrowser *projectBrowser;
+	PolycodeEditorManager *editorManager;
 		
 	UIImageButton *playButton;
 	UIImageButton *stopButton;
@@ -200,12 +204,16 @@ public:
 	UIElement *modalRoot;
 	UIElement *fileBrowserRoot;
 	UIFileDialog *fileDialog;
-
+	
+	UIWindow *aboutWindow;
+	UIButton *aboutOKButton;
 private:
 	
 	int frameSizeX;
 	int frameSizeY;
 	
+	bool willHideModal;
+
 	ScreenShape *fileDialogBlocker;
 
 	ScreenShape *topBarBg;
@@ -216,6 +224,9 @@ private:
 	ScreenEntity *dragEntity;
 	ScreenLabel *dragLabel;
 	bool isDragging;
+	
+	ScreenLabel *currentProjectTitle;
+	UIComboBox *currentFileSelector;
 	
 	ScreenImage *welcomeImage;	
 	

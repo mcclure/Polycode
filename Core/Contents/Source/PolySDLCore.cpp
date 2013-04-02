@@ -55,9 +55,9 @@ void Core::getScreenInfo(int *width, int *height, int *hz) {
 	if (hz) *hz = 0;
 }
 
-SDLCore::SDLCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex, bool resizableWindow) : Core(_xRes, _yRes, fullScreen, vSync, aaLevel, anisotropyLevel, frameRate, monitorIndex) {
+SDLCore::SDLCore(PolycodeView *view, int _xRes, int _yRes, bool fullScreen, bool vSync, int aaLevel, int anisotropyLevel, int frameRate, int monitorIndex) : Core(_xRes, _yRes, fullScreen, vSync, aaLevel, anisotropyLevel, frameRate, monitorIndex) {
 
-	this->resizableWindow = resizableWindow;
+	this->resizableWindow = view->resizable;
 
 	char *buffer = getcwd(NULL, 0);
 	defaultWorkingDirectory = String(buffer);
@@ -160,8 +160,14 @@ void SDLCore::openURL(String url) {
     }
 }
 
-String SDLCore::executeExternalCommand(String command) {
-	FILE *fp = popen(command.c_str(), "r");
+String SDLCore::executeExternalCommand(String command, String args, String inDirectory) {
+	String finalCommand = command + " " + args;
+
+	if(inDirectory != "") {
+		finalCommand = "cd " + inDirectory + " && " + finalCommand;
+	}
+
+	FILE *fp = popen(finalCommand.c_str(), "r");
 	if(!fp) {
 		return "Unable to execute command";
 	}	
@@ -204,6 +210,41 @@ void SDLCore::enableMouse(bool newval) {
 	Core::enableMouse(newval);
 }
 
+bool SDLCore::checkSpecialKeyEvents(PolyKEY key) {
+	
+	if(key == KEY_a && (input->getKeyState(KEY_LCTRL) || input->getKeyState(KEY_RCTRL))) {
+		dispatchEvent(new Event(), Core::EVENT_SELECT_ALL);
+		return true;
+	}
+	
+	if(key == KEY_c && (input->getKeyState(KEY_LCTRL) || input->getKeyState(KEY_RCTRL))) {
+		dispatchEvent(new Event(), Core::EVENT_COPY);
+		return true;
+	}
+	
+	if(key == KEY_x && (input->getKeyState(KEY_LCTRL) || input->getKeyState(KEY_RCTRL))) {
+		dispatchEvent(new Event(), Core::EVENT_CUT);
+		return true;
+	}
+	
+	
+	if(key == KEY_z  && (input->getKeyState(KEY_LCTRL) || input->getKeyState(KEY_RCTRL)) && (input->getKeyState(KEY_LSHIFT) || input->getKeyState(KEY_RSHIFT))) {
+		dispatchEvent(new Event(), Core::EVENT_REDO);
+		return true;
+	}
+		
+	if(key == KEY_z  && (input->getKeyState(KEY_LCTRL) || input->getKeyState(KEY_RCTRL))) {
+		dispatchEvent(new Event(), Core::EVENT_UNDO);
+		return true;
+	}
+	
+	if(key == KEY_v && (input->getKeyState(KEY_LCTRL) || input->getKeyState(KEY_RCTRL))) {
+		dispatchEvent(new Event(), Core::EVENT_PASTE);
+		return true;
+	}
+	return false;
+}
+
 bool SDLCore::Update() {
 	if(!running)
 		return false;
@@ -231,11 +272,22 @@ bool SDLCore::Update() {
 					renderer->Resize(xRes, yRes);	
 					dispatchEvent(new Event(), EVENT_CORE_RESIZE);	
 				break;
+				case SDL_ACTIVEEVENT:
+					if(event.active.state == SDL_APPINPUTFOCUS) {
+						if(event.active.gain == 1) {
+							gainFocus();
+						} else {
+							loseFocus();
+						}
+					}
+				break;
 				case SDL_JOYBUTTONDOWN:
 //					input->setKeyState((PolyKEY)(event.key.keysym.sym), true);
 				break;
 				case SDL_KEYDOWN:
-					input->setKeyState((PolyKEY)(event.key.keysym.sym), (char)event.key.keysym.unicode, true, getTicks());
+					if(!checkSpecialKeyEvents((PolyKEY)(event.key.keysym.sym))) {
+						input->setKeyState((PolyKEY)(event.key.keysym.sym), (char)event.key.keysym.unicode, true, getTicks());
+					}
 				break;
 				case SDL_KEYUP:
 					input->setKeyState((PolyKEY)(event.key.keysym.sym), (char)event.key.keysym.unicode, false, getTicks());
@@ -317,7 +369,7 @@ void SDLCore::copyStringToClipboard(const String& str) {
 }
 
 String SDLCore::getClipboardString() {
-
+	return "";
 }
 
 void SDLCore::createFolder(const String& folderPath) {

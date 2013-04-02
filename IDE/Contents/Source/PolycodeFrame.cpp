@@ -362,6 +362,8 @@ CurveEditor::CurveEditor() : UIWindow("", 750, 300) {
 	
 	selectorImage->setPosition(selectButton->getPosition().x - 4, selectButton->getPosition().y - 4);
 
+	selectedCurve = NULL;
+
 	setMode(0);
 	
 	treeContainer = new UITreeContainer("boxIcon.png", L"Curves", 145, 280);
@@ -370,8 +372,7 @@ CurveEditor::CurveEditor() : UIWindow("", 750, 300) {
 	treeContainer->setPosition(12, 33);
 	
 	treeContainer->getRootNode()->setUserData(NULL);
-	
-	selectedCurve = NULL;
+
 	
 	addChild(treeContainer);	
 
@@ -497,6 +498,7 @@ PolycodeFrame::PolycodeFrame() : ScreenEntity() {
 
 	globalFrame = this;
 	processInputEvents = true;
+	willHideModal = false;
 
 	modalChild = NULL;
 	
@@ -553,6 +555,16 @@ PolycodeFrame::PolycodeFrame() : ScreenEntity() {
 	addChild(stopButton);
 	stopButton->setPosition(10,4);
 
+	currentProjectTitle = new ScreenLabel("", 32, "section");
+	addChild(currentProjectTitle);
+	currentProjectTitle->color.a = 0.4;
+	currentProjectTitle->setPosition(70, 0);
+
+	currentFileSelector = new UIComboBox(globalMenu, 300);
+	currentFileSelector->addEventListener(this, UIEvent::CHANGE_EVENT);
+	
+	addChild(currentFileSelector);
+
 	
 	resizer = new ScreenImage("Images/corner_resize.png");	
 	addChild(resizer);
@@ -586,6 +598,22 @@ PolycodeFrame::PolycodeFrame() : ScreenEntity() {
 	
 	yesNoPopup = new YesNoPopup();
 	yesNoPopup->visible = false;
+	
+	aboutWindow = new UIWindow("", 800, 440);
+	aboutWindow->closeOnEscape = true;
+	ScreenImage *aboutImage = new ScreenImage("Images/about.png");
+	aboutWindow->addChild(aboutImage);
+	aboutImage->setPosition(20, 40);
+	aboutWindow->visible = false;
+	aboutOKButton = new UIButton("OK", 100);
+	aboutWindow->addChild(aboutOKButton);
+	aboutOKButton->setPosition(700, 420);
+	aboutOKButton->addEventListener(this, UIEvent::CLICK_EVENT);
+	
+	ScreenLabel *versionLabel = new ScreenLabel("version 0.8.2", 12, "mono");
+	aboutWindow->addChild(versionLabel);
+	versionLabel->setPosition(20, 430);
+	versionLabel->color.a = 0.4;
 	
 	isDragging  = false;
 	dragLabel = new ScreenLabel("NONE", 11, "sans");
@@ -657,6 +685,10 @@ void PolycodeFrame::showModal(UIWindow *modalChild) {
 	modalChild->showWindow();
 	modalChild->addEventListener(this, UIEvent::CLOSE_EVENT);
 	Resize(frameSizeX, frameSizeY);
+	
+	if(modalChild == yesNoPopup) {
+		yesNoPopup->focusChild(yesNoPopup->okButton);
+	}
 }
 
 PolycodeProjectBrowser *PolycodeFrame::getProjectBrowser() {
@@ -692,6 +724,13 @@ void PolycodeFrame::hideModal() {
 	modalBlocker->enabled = false;		
 }
 
+void PolycodeFrame::Update() {
+	if(willHideModal) {
+		hideModal();
+		willHideModal = false;
+	}
+}
+
 void PolycodeFrame::showAssetBrowser(std::vector<String> extensions) {
 	if(!projectManager->getActiveProject()) {
 		return;
@@ -702,6 +741,39 @@ void PolycodeFrame::showAssetBrowser(std::vector<String> extensions) {
 }
 
 void PolycodeFrame::handleEvent(Event *event) {
+	
+	if(event->getDispatcher() == currentFileSelector && event->getEventType() == "UIEvent") {
+		PolycodeEditor *editor = editorManager->openEditors[currentFileSelector->getSelectedIndex()];
+		editorManager->setCurrentEditor(editor, false);
+		showEditor(editor);
+	}
+	
+	if(event->getDispatcher() == editorManager) {	
+		currentFileSelector->clearItems();
+		
+		for(int i=0; i < editorManager->openEditors.size(); i++) {
+			OSFileEntry entry(editorManager->openEditors[i]->getFilePath(), OSFileEntry::TYPE_FILE);
+			
+			if(editorManager->openEditors[i]->hasChanges()) {
+				currentFileSelector->addComboItem("* " +entry.name);			
+			} else {
+				currentFileSelector->addComboItem(entry.name);
+			}
+			
+			if(editorManager->getCurrentEditor() == editorManager->openEditors[i]) {
+				currentFileSelector->setSelectedIndex(i);
+			}
+			
+		}
+	}
+	
+	if(event->getDispatcher() == projectManager) {
+		currentProjectTitle->setText(projectManager->getActiveProject()->getProjectName());
+	}
+	
+	if(event->getDispatcher() == aboutOKButton && event->getEventType() == "UIEvent") {
+		hideModal();
+	}
 	
 	if(event->getDispatcher() == fileDialog && event->getEventType() == "UIEvent") {
 		fileBrowserRoot->removeChild(fileDialog);
@@ -749,7 +821,7 @@ void PolycodeFrame::handleEvent(Event *event) {
 
 	if(event->getDispatcher() == modalChild) {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::CLOSE_EVENT) {
-			hideModal();
+			willHideModal = true;
 		}
 	} else {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::CLICK_EVENT && event->getDispatcher() == newProjectButton) {
@@ -785,6 +857,8 @@ void PolycodeFrame::Resize(int x, int y) {
 	modalBlocker->setShapeSize(x, y);
 	fileDialogBlocker->setShapeSize(x, y);
 		
+	currentFileSelector->setPosition(x-350, 11);
+	
 	
 	if(this->modalChild) {
 		modalChild->setPosition((x-modalChild->getWidth())/2.0f, (y-modalChild->getHeight())/2.0f);

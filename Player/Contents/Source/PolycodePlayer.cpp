@@ -481,6 +481,7 @@ PolycodeDebugEvent::~PolycodeDebugEvent() {
 
 PolycodePlayer::PolycodePlayer(String fileName, bool knownArchive, bool useDebugger) : EventDispatcher()  {
 	L = NULL;
+	remoteDebuggerClient = NULL;
 
 	crashed = false;
 	doCodeInject = false;
@@ -720,9 +721,7 @@ void PolycodePlayer::loadFile(const char *fileName) {
 		fullPath += mainFile;	
 		Logger::log(fullPath.c_str());
 	}
-	
-	remoteDebuggerClient = NULL;
-	
+
 	if(useDebugger) {
 	
 			
@@ -815,50 +814,65 @@ void PolycodePlayer::handleEvent(Event *event) {
 			case InputEvent::EVENT_KEYDOWN:
 			{
 				if(L && !crashed) {
+					lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+					errH = lua_gettop(L);					
 					lua_getfield(L, LUA_GLOBALSINDEX, "onKeyDown");
 					lua_pushinteger(L, inputEvent->keyCode());
-					lua_pcall(L, 1,0,errH);					
+					lua_pcall(L, 1,0,errH);
+					lua_settop(L, 0);
 				}
 			}
 			break;
 			case InputEvent::EVENT_KEYUP:
 			{
 				if(L && !crashed) {
+					lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+					errH = lua_gettop(L);									
 					lua_getfield(L, LUA_GLOBALSINDEX, "onKeyUp");
 					lua_pushinteger(L, inputEvent->keyCode());
-					lua_pcall(L, 1,0,errH);					
+					lua_pcall(L, 1,0,errH);
+					lua_settop(L, 0);								
 				}
 			}
 			break;
 			case InputEvent::EVENT_MOUSEDOWN:
 			{
 				if(L && !crashed) {
+					lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+					errH = lua_gettop(L);									
 					lua_getfield(L, LUA_GLOBALSINDEX, "onMouseDown");
 					lua_pushinteger(L, inputEvent->mouseButton);
 					lua_pushnumber(L, inputEvent->mousePosition.x);
-					lua_pushnumber(L, inputEvent->mousePosition.y);					
+					lua_pushnumber(L, inputEvent->mousePosition.y);	
 					lua_pcall(L, 3,0,errH);					
+					lua_settop(L, 0);					
 				}
 			}
 			break;	
 			case InputEvent::EVENT_MOUSEUP:
 			{
 				if(L && !crashed) {
+					lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+					errH = lua_gettop(L);									
 					lua_getfield(L, LUA_GLOBALSINDEX, "onMouseUp");
 					lua_pushinteger(L, inputEvent->mouseButton);
 					lua_pushnumber(L, inputEvent->mousePosition.x);
-					lua_pushnumber(L, inputEvent->mousePosition.y);					
+					lua_pushnumber(L, inputEvent->mousePosition.y);		
 					lua_pcall(L, 3,0,errH);					
+					lua_settop(L, 0);					
 				}
 			}
 			break;	
 			case InputEvent::EVENT_MOUSEMOVE:
 			{
 				if(L && !crashed) {
+					lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+					errH = lua_gettop(L);									
 					lua_getfield(L, LUA_GLOBALSINDEX, "onMouseMove");
 					lua_pushnumber(L, inputEvent->mousePosition.x);
-					lua_pushnumber(L, inputEvent->mousePosition.y);					
+					lua_pushnumber(L, inputEvent->mousePosition.y);	
 					lua_pcall(L, 2,0,errH);					
+					lua_settop(L, 0);					
 				}
 			}
 			break;																			
@@ -869,7 +883,8 @@ void PolycodePlayer::handleEvent(Event *event) {
 
 bool PolycodePlayer::Update() {
 	if(L) {
-		lua_settop(L, 0);
+		lua_getfield (L, LUA_GLOBALSINDEX, "__customError");
+		errH = lua_gettop(L);	
 		if(doCodeInject) {
 			printf("INJECTING CODE:[%s]\n", injectCodeString.c_str());
 			doCodeInject = false;			
@@ -882,6 +897,7 @@ bool PolycodePlayer::Update() {
 			lua_pushnumber(L, core->getElapsed());
 			lua_pcall(L, 1,0,errH);
 		}
+		lua_settop(L, 0);
 	}
 	return core->Update();
 }
