@@ -27,7 +27,22 @@
 #include <PolycodeUI.h>
 #include "PolycodeProps.h"
 
+#if defined(__APPLE__) && defined(__MACH__)
+	#define COPYMOD_1 KEY_RALT
+	#define COPYMOD_2 KEY_LALT
+#elif defined _WINDOWS
+	#define COPYMOD_1 KEY_RCTRL
+	#define COPYMOD_2 KEY_LCTRL
+#else
+	#define COPYMOD_1 KEY_RCTRL
+	#define COPYMOD_2 KEY_LCTRL
+#endif
+
 using namespace Polycode;
+
+#ifdef _WINDOWS
+#define round (int)
+#endif
 
 class EntityBrowserData  {
 	public:
@@ -99,6 +114,7 @@ class PolycodeScreenEditorMain : public UIElement {
 		ScreenEntity *addNewLayer(String layerName);	
 		void updateCursor();		
 		void selectEntity(ScreenEntity *entity);		
+		void resetSelectedEntityTransforms();
 		void setMode(int newMode);	
 		void handleEvent(Event *event);	
 		void resizePreviewScreen();		
@@ -113,13 +129,19 @@ class PolycodeScreenEditorMain : public UIElement {
 		void createParticleRef(ScreenParticleEmitter *target);
 		void createSoundRef(ScreenSound *target);
 		void createEntityRef(ScreenEntity *entity);
+		
+		void getCenterAndSizeForSelected(Vector2 *center, Number *width, Number *height);
 	
 		void handleMouseDown(Vector2 position);
 		void handleMouseMove(Vector2 position);
 		void handleMouseUp(Vector2 position);
 		
 		void setGrid(int gridSize);
-				
+		
+		String Copy(void **data);
+		void Paste(void *data, String clipboardType);
+		void destroyClipboardData(void *data, String type);
+		
 		static const int MODE_SELECT = 0;
 		static const int MODE_SHAPE = 1;
 		static const int MODE_ZOOM = 2;
@@ -150,6 +172,7 @@ class PolycodeScreenEditorMain : public UIElement {
 		ScreenImageSheet *imageSheet;
 		ScreenLabelSheet *labelSheet;
 		SoundSheet *soundSheet;
+		EntityPropSheet *entityPropSheet;
 		ScreenEntityInstanceSheet *instanceSheet;
 		ScreenSpriteSheet *spriteSheet;
 		ScreenParticleSheet *particleSheet;
@@ -158,9 +181,9 @@ class PolycodeScreenEditorMain : public UIElement {
 		
 		ScreenEntity *objectBaseEntity;		
 		ScreenEntity *placingPreviewEntity;												
+		bool multiSelect;
 	protected:
 	
-		bool multiSelect;
 	
 		int gridSize;
 		bool gridSnap;
@@ -179,6 +202,8 @@ class PolycodeScreenEditorMain : public UIElement {
 
 		bool firstResize;
 		
+		bool firstMove;
+
 		int placementCount;
 	
 		
@@ -211,6 +236,10 @@ class PolycodeScreenEditorMain : public UIElement {
 		
 		Vector2 mouseBase;
 		std::vector<Vector2> baseEntityPositions;
+		std::vector<Vector2> baseEntityScales;
+		std::vector<Number> baseRotateAngles;
+		Vector2 groupCenterPoint;
+		Number groupRoll;
 		Number baseAngle;
 	
 		ScreenShape *placingShape;	
@@ -287,6 +316,13 @@ class PolycodeScreenEditorMain : public UIElement {
 		int mode;	
 };
 
+class ScreenEntityClipboardData {
+	public:
+		ScreenEntityClipboardData(){}
+		
+		std::vector<ScreenEntity*> entities;
+};
+
 class PolycodeScreenEditor : public PolycodeEditor {
 	public:
 		PolycodeScreenEditor();
@@ -295,6 +331,10 @@ class PolycodeScreenEditor : public PolycodeEditor {
 		bool openFile(OSFileEntry filePath);
 		void Resize(int x, int y);
 		
+		String Copy(void **data);
+		void Paste(void *data, String clipboardType);
+		void destroyClipboardData(void *data, String type);
+
 		void Activate();		
 		
 		void saveCurveToObject(ObjectEntry *entry, BezierCurve *curve);

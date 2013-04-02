@@ -25,22 +25,28 @@
 #include "Polycode.h"
 #include "OSBasics.h"
 #include "PolycodeProject.h"
+#include "PolycodeClipboard.h"
 
 using namespace Polycode;
 
 
-class PolycodeEditor : public ScreenEntity { 
+class PolycodeEditor : public ScreenEntity, public ClipboardProvider { 
 public:
 	PolycodeEditor(bool _isReadOnly);
 	virtual ~PolycodeEditor();
 	
-	virtual bool openFile(OSFileEntry filePath){ this->filePath = filePath.fullPath; }
+	virtual bool openFile(OSFileEntry filePath){ this->filePath = filePath.fullPath; return true;}
 	virtual void Resize(int x, int y);
 	
+	virtual void handleEvent(Event *event);
+
 	virtual void Activate() {};
 	
 	virtual void saveFile(){};
 	
+	virtual String Copy(void **data) { return ""; }
+	virtual void Paste(void *data, String clipboardType) {}
+
 	virtual void handleDroppedFile(OSFileEntry file, Number x, Number y) {};
 	
 	void setFilePath(String newPath);
@@ -50,9 +56,16 @@ public:
 	
 	String getEditorType() { return editorType; }
 	
+	bool hasChanges() { return _hasChanges;}
+	
+	void setHasChanges(bool newVal);
+	
 	PolycodeProject *parentProject;
 		
 protected:
+
+	bool _hasChanges;
+
 	String filePath;
 	bool _isReadOnly;
 	

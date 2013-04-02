@@ -184,6 +184,14 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : UIElemen
 	checkBufferLines();
 	
 	insertLine(true);
+	
+	core = CoreServices::getInstance()->getCore();
+	core->addEventListener(this, Core::EVENT_COPY);
+	core->addEventListener(this, Core::EVENT_PASTE);
+	core->addEventListener(this, Core::EVENT_CUT);
+	core->addEventListener(this, Core::EVENT_UNDO);
+	core->addEventListener(this, Core::EVENT_REDO);
+	core->addEventListener(this, Core::EVENT_SELECT_ALL);	
 }
 
 void UITextInput::checkBufferLines() {
@@ -614,6 +622,10 @@ String UITextInput::getText() {
 }
 
 void UITextInput::updateCaretPosition() {
+
+	if(lineOffset > lines.size()-1)
+		lineOffset = lines.size()-1;
+
 	caretImagePosition = padding;
 	if(caretPosition == 0) {
 		caretImagePosition = padding;
@@ -661,7 +673,7 @@ void UITextInput::dragSelectionTo(Number x, Number y) {
 	String selectToLine = lines[lineOffset];
 	
 	int len = selectToLine.length();
-	Number slen;
+	Number slen = 0;
 	int caretPosition = bufferLines[0]->getLabel()->getTextWidthForString(selectToLine.substr(0,len));
 	for(int i=0; i < len; i++) {
 		slen = bufferLines[0]->getLabel()->getTextWidthForString(selectToLine.substr(0,i));
@@ -816,7 +828,7 @@ void UITextInput::setCaretToMouse(Number x, Number y) {
 	//}
 	
 	int len = lines[lineOffset].length();
-	Number slen;
+	Number slen= 0;
 	
 	int newCaretPosition = -1;
 	
@@ -1003,6 +1015,8 @@ void UITextInput::setUndoState(UITextInputUndoState state) {
 	if(state.hasSelection) {
 		setSelection(lineOffset, state.selectionLine, caretPosition, state.selectionCaretPosition);
 	}
+	
+	showLine(state.lineOffset, false);
 }
 
 void UITextInput::Undo() {
@@ -1068,43 +1082,6 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 //	Logger::log("UCHAR: %d\n", charCode);	
 	
 	CoreInput *input = CoreServices::getInstance()->getCore()->getInput();	
-
-	if(key == KEY_a && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		selectAll();
-		return;
-	}
-
-	if(key == KEY_c && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		Copy();
-		return;
-	}
-
-	if(key == KEY_x && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		Cut();
-		return;
-	}
-	
-	if(key == KEY_z  && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		Undo();
-		return;
-	}
-
-	if(key == KEY_z  && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER)) && (input->getKeyState(KEY_LSHIFT) || input->getKeyState(KEY_RSHIFT))) {
-		Redo();
-		return;
-	}
-
-
-	if(key == KEY_y  && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		Redo();
-		return;
-	}
-
-	if(key == KEY_v && (input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER))) {
-		Paste();
-		return;
-	}	
-	
 	
 	if(key == KEY_LEFT) {
 		if(input->getKeyState(KEY_LSUPER) || input->getKeyState(KEY_RSUPER)) {
@@ -1275,6 +1252,8 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	}	
 	
 	String ctext = lines[lineOffset];
+	
+	bool _changedText = false;
 		
 	if((charCode > 31 && charCode < 127) || charCode > 127) {	
 		if(!isNumberOnly || (isNumberOnly && ((charCode > 47 && charCode < 58) || (charCode == '.' || charCode == '-')))) {
@@ -1288,6 +1267,7 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 			ctext = ctext.substr(0,caretPosition);
 			ctext += charCode + text2;
 			caretPosition++;
+			_changedText = true;
 		}
 	}
 	
@@ -1299,7 +1279,8 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 		String text2 = ctext.substr(caretPosition, ctext.length()-caretPosition);
 		ctext = ctext.substr(0,caretPosition);
 		ctext += (wchar_t)'\t' + text2;
-		caretPosition++;		
+		caretPosition++;
+		_changedText = true;		
 	}
 	
 	if(key == KEY_BACKSPACE) {
@@ -1316,6 +1297,7 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 				ctext = ctext.substr(0,caretPosition-1);
 				ctext += text2;
 				caretPosition--;
+				_changedText = true;				
 			}
 		} else {
 			if(lineOffset > 0) {
@@ -1333,7 +1315,10 @@ void UITextInput::onKeyDown(PolyKEY key, wchar_t charCode) {
 	}
 	
 	lines[lineOffset] = ctext;
-	changedText();
+	
+	if(_changedText) {
+		changedText();
+	}
 	updateCaretPosition();
 }
 
@@ -1364,7 +1349,16 @@ void UITextInput::Update() {
 }
 
 UITextInput::~UITextInput() {
-
+	core->removeAllHandlersForListener(this);
+	delete linesContainer;
+	delete inputRect;
+	delete lineNumberBg;
+	delete lineNumberAnchor;
+	delete selectorRectTop;
+	delete selectorRectMiddle;
+	delete selectorRectBottom;
+	delete blinkerRect;
+	delete blinkTimer;
 }
 
 void UITextInput::readjustBuffer() {
@@ -1403,6 +1397,30 @@ void UITextInput::readjustBuffer() {
 		
 void UITextInput::handleEvent(Event *event) {
 
+	if(event->getDispatcher() == core && hasFocus) {
+		switch(event->getEventCode()) {
+			case Core::EVENT_UNDO:
+				Undo();
+			break;
+			case Core::EVENT_REDO:
+				Redo();
+			break;
+			case Core::EVENT_COPY:
+				Copy();
+			break;
+			case Core::EVENT_CUT:
+				Cut();
+			break;
+			case Core::EVENT_PASTE:
+				Paste();
+			break;
+			case Core::EVENT_SELECT_ALL:
+				selectAll();
+			break;
+			
+		}
+	}
+
 	if(event->getDispatcher() == scrollContainer) {
 		if(event->getEventCode() == Event::CHANGE_EVENT) {
 			applySyntaxFormatting();
@@ -1427,16 +1445,16 @@ void UITextInput::handleEvent(Event *event) {
 				selectWordAtCaret();
 			break;
 			case InputEvent::EVENT_MOUSEMOVE:
-				CoreServices::getInstance()->getCore()->setCursor(CURSOR_TEXT);			
+				CoreServices::getInstance()->getCore()->setCursor(Core::CURSOR_TEXT);			
 				if(draggingSelection) {
 					dragSelectionTo(((InputEvent*)event)->mousePosition.x, ((InputEvent*)event)->mousePosition.y - linesContainer->getPosition().y);		
 				}
 			break;
 			case InputEvent::EVENT_MOUSEOVER:
-				CoreServices::getInstance()->getCore()->setCursor(CURSOR_TEXT);
+				CoreServices::getInstance()->getCore()->setCursor(Core::CURSOR_TEXT);
 			break;
 			case InputEvent::EVENT_MOUSEOUT:
-				CoreServices::getInstance()->getCore()->setCursor(CURSOR_ARROW);
+				CoreServices::getInstance()->getCore()->setCursor(Core::CURSOR_ARROW);
 			break;				
 		}
 	}

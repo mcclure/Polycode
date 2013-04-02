@@ -506,20 +506,18 @@ void OpenGLRenderer::setOrthoMode(Number xSize, Number ySize, bool centered) {
 		ySize = yRes;
 		
 	setBlendingMode(BLEND_MODE_NORMAL);
-	if(!orthoMode) {
-		glDisable(GL_LIGHTING);
-		glMatrixMode(GL_PROJECTION);
-		glDisable(GL_CULL_FACE);
-		glPushMatrix();
-		glLoadIdentity();
+	glDisable(GL_LIGHTING);
+	glMatrixMode(GL_PROJECTION);
+	glDisable(GL_CULL_FACE);
+	glPushMatrix();
+	glLoadIdentity();
 		
-		if(centered) {
-			glOrtho(-xSize*0.5,xSize*0.5,ySize*0.5,-ySize*0.5,-1.0f,1.0f);		
-		} else {
-			glOrtho(0.0f,xSize,ySize,0,-1.0f,1.0f);
-		}
-		orthoMode = true;
+	if(centered) {
+		glOrtho(-xSize*0.5,xSize*0.5,ySize*0.5,-ySize*0.5,-1.0f,1.0f);		
+	} else {
+		glOrtho(0.0f,xSize,ySize,0,-1.0f,1.0f);
 	}
+	orthoMode = true;
 	glMatrixMode(GL_MODELVIEW);	
 	glLoadIdentity();
 }
@@ -551,8 +549,8 @@ void OpenGLRenderer::setPerspectiveMode() {
 
 void OpenGLRenderer::BeginRender() {
 	if(doClearBuffer) {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	glLoadIdentity();
 	currentTexture = NULL;

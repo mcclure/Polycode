@@ -99,6 +99,8 @@
 #define NO_TOUCH_API 1
 #endif
 
+#define POLYCODE_CORE Win32Core
+
 namespace Polycode {
 
 	class _PolyExport Win32Mutex : public CoreMutex {
@@ -117,7 +119,8 @@ namespace Polycode {
 		PolyKEY keyCode;
 		wchar_t unicodeChar;		
 		char mouseButton;	
-		static const int INPUT_EVENT = 0;
+		static const int EVENTBASE_PLATFORMEVENT = 0x300;
+		static const int INPUT_EVENT = EVENTBASE_PLATFORMEVENT+0;
 	};
 	
 	
@@ -223,26 +226,31 @@ public:
 
 		void initTouch();
 
-		// NEED TO IMPLEMENT:
+		void handleViewResize(int width, int height);
+		
+		String executeExternalCommand(String command,  String args, String inDirectory);
+		std::vector<String> openFilePicker(std::vector<CoreFileExtension> extensions, bool allowMultiple);
+		void createFolder(const String& folderPath);
+		void openURL(String url);
+		String openFolderPicker();
+		void copyDiskItem(const String& itemPath, const String& destItemPath);
+		void moveDiskItem(const String& itemPath, const String& destItemPath);
+		void removeDiskItem(const String& itemPath);
 
-		String executeExternalCommand(String command) { return "";}
+		void setCursor(int cursorType);
 
-		void openURL(String url) {}
-		void setCursor(int cursorType){ }
-		void copyStringToClipboard(const String& str) { }
-		String getClipboardString() { return ""; }
+		void copyStringToClipboard(const String& str);
+		String getClipboardString();
 
-		void createFolder(const String& folderPath) {}
-		void copyDiskItem(const String& itemPath, const String& destItemPath) {}
-		void moveDiskItem(const String& itemPath, const String& destItemPath) {}
-		String openFolderPicker()  { return "";}
-		void removeDiskItem(const String& itemPath)  {}
-		std::vector<String> openFilePicker(std::vector<CoreFileExtension> extensions, bool allowMultiple) { std::vector<String> ret; return ret;}
 		void resizeTo(int xRes, int yRes) { }
 		
 		std::vector<GamepadDeviceEntry*> gamepads;
 
+		HWND hWnd;
+
 	private:
+
+		bool checkSpecialKeyEvents(PolyKEY key);
 
 		unsigned int nextDeviceID;
 		PolyKEY keyMap[1024];
@@ -252,7 +260,6 @@ public:
 
 		void initMultisample(int numSamples);
 
-		HWND hWnd;
 
 		int lastMouseX;
 		int lastMouseY;
