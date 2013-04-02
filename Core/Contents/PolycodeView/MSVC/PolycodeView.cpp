@@ -6,6 +6,7 @@
 #include "PolyRenderer.h"
 #include <io.h>
 #include <fcntl.h>
+#include <ios>
 
 using namespace Polycode;
 
