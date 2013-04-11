@@ -56,7 +56,9 @@ namespace Polycode {
 			void setText(const String& newText);
 			
 			Label *getLabel();
-			
+		
+			virtual String className();
+		
 		protected:
 			
 			Number scale;

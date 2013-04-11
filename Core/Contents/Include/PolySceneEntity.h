@@ -50,6 +50,8 @@ namespace Polycode {
 			
 			int collisionShapeType;	
 			
+			virtual String className();
+		
 		protected:
 
 	};

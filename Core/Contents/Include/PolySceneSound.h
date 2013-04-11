@@ -36,6 +36,8 @@ namespace Polycode {
 			SceneSoundListener();
 			virtual ~SceneSoundListener();			
 			void Update();
+			
+			virtual String className();
 	};
 
 
@@ -53,6 +55,8 @@ namespace Polycode {
 			*/
 			Sound *getSound();
 			
+			virtual String className();
+		
 		protected:
 		
 			bool directionalSound;

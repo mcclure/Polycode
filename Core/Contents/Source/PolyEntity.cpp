@@ -768,3 +768,27 @@ void Entity::addTag(String tag) {
 	tags.push_back(tag);
 }
 
+String Entity::description() {
+	String r = "<";
+	r += this->className();
+	if (custEntityType.size()) {
+		r += " custEntityType:";
+		r += custEntityType;
+	}
+	if (custEntityType.size()) {
+		r += " id:";
+		r += custEntityType;
+	}
+	r += " position:";
+	r += String::NumberToString(_position.x);
+	r += ",";
+	r += String::NumberToString(_position.y);
+	r += ",";
+	r += String::NumberToString(_position.z);
+	r += ">";
+	return r;
+}
+
+String Entity::className() {
+	return "Entity";
+}

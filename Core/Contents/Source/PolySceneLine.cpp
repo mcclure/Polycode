@@ -108,3 +108,7 @@ void SceneLine::Render() {
 	renderer->drawArrays(mesh->getMeshType());	
 	
 }
+
+String SceneLine::className() {
+	return "SceneLine";
+}

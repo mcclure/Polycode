@@ -358,6 +358,10 @@ void Skeleton::bonesVisible(bool val) {
 	bonesEntity->visible = val;
 }
 
+String Skeleton::className() {
+	return "Skeleton";
+}
+
 BoneTrack::BoneTrack(Bone *bone, Number length) {
 	this->length = length;
 	targetBone = bone;

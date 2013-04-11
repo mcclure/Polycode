@@ -164,6 +164,8 @@ namespace Polycode {
 			 */
 			bool ownsTexture;
 		
+			virtual String className();
+		
 		protected:
 		
 			bool useVertexBuffer;

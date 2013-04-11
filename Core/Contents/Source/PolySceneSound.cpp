@@ -43,6 +43,9 @@ void SceneSoundListener::Update() {
 	CoreServices::getInstance()->getSoundManager()->setListenerOrientation(direction, upVector);
 }
 
+String SceneSoundListener::className() {
+	return "Entity";
+}
 
 SceneSound::SceneSound(const String& fileName, Number referenceDistance, Number maxDistance, bool directionalSound) : SceneEntity() {
 
@@ -74,4 +77,8 @@ void SceneSound::Update() {
 
 Sound *SceneSound::getSound() {
 	return sound;
+}
+
+String SceneSound::className() {
+	return "Entity";
 }

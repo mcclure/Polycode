@@ -82,3 +82,7 @@ ScenePrimitive::ScenePrimitive(int type, Number v1, Number v2, Number v3,Number 
 ScenePrimitive::~ScenePrimitive() {
 
 }
+
+String ScenePrimitive::className() {
+	return "ScenePrimitive";
+}

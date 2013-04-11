@@ -159,7 +159,7 @@ namespace Polycode {
 			Number brightnessDeviation;
 			
 			void updateEmitter();
-
+		
 			/**
 			* Continuous emitter setting.
 			*/ 																													
@@ -303,6 +303,8 @@ namespace Polycode {
 		
 		void dispatchTriggerCompleteEvent();
 		
+		virtual String className();
+		
 			/**
 			* Continuous emitter setting.
 			*/ 																													
@@ -352,6 +354,7 @@ namespace Polycode {
 			*/ 																																
 			static const int TRIGGERED_EMITTER = 1;
 		
+		virtual String className();
 		
 	protected:
 		ScreenMesh *emitterMesh;

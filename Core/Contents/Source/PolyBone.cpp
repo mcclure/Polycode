@@ -153,3 +153,7 @@ void Bone::Render() {
 	renderer->drawArrays(boneMesh->getMeshType());	
 
 }
+
+String Bone::className() {
+	return "Bone";
+}

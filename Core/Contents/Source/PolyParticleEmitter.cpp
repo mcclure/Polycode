@@ -78,6 +78,9 @@ void SceneParticleEmitter::Update() {
 	updateEmitter();
 }
 
+String SceneParticleEmitter::className() {
+	return "SceneParticleEmitter";
+}
 
 ScreenParticleEmitter::ScreenParticleEmitter(const String& imageFile, int particleType, int emitterType, Number lifespan, unsigned int numParticles, Vector3 direction, Vector3 gravity, Vector3 deviation, Vector3 emitterRadius, Mesh *particleMesh, ScreenMesh *emitter)
 		: ParticleEmitter(imageFile, particleMesh, particleType, emitterType, lifespan, numParticles,  direction, gravity, deviation, emitterRadius),
@@ -155,6 +158,10 @@ void ScreenParticleEmitter::dispatchTriggerCompleteEvent() {
 Matrix4 ScreenParticleEmitter::getBaseMatrix() {
 	rebuildTransformMatrix();
 	return getConcatenatedMatrix();
+}
+
+String ScreenParticleEmitter::className() {
+	return "ScreenParticleEmitter";
 }
 
 ParticleEmitter::ParticleEmitter(const String& imageFile, Mesh *particleMesh, int particleType, int emitterType, Number lifespan, unsigned int numParticles,  Vector3 direction, Vector3 gravity, Vector3 deviation, Vector3 emitterRadius)  {

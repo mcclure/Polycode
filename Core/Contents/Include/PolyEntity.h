@@ -653,7 +653,9 @@ namespace Polycode {
 			void clearTags();
 			void addTag(String tag); 
 
-
+			// For debugging only
+			virtual String description();
+			virtual String className();
 
 			//@}		
 		protected:

@@ -32,3 +32,6 @@ SceneEntity::~SceneEntity() {
 	
 }
 
+String SceneEntity::className() {
+	return "Entity";
+}

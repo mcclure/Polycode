@@ -49,7 +49,9 @@ namespace Polycode {
 			void Render();
 			
 			Number lineWidth;
-			bool lineSmooth;				
+			bool lineSmooth;			
+		
+			virtual String className();
 			
 		protected:		
 		

@@ -173,3 +173,7 @@ void SceneLight::Render() {
 int SceneLight::getType() const {
 	return type;
 }
+
+String SceneLight::className() {
+	return "SceneLight";
+}

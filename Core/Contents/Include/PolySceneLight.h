@@ -185,6 +185,8 @@ namespace Polycode {
 		
 			SceneEntity *lightShape;
 			
+			virtual String className();
+		
 		protected:
 		
 			Number spotlightExponent;

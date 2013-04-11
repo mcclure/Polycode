@@ -45,6 +45,8 @@ namespace Polycode {
 			ScenePrimitive(int type, Number v1=1.0f, Number v2=1.0f, Number v3=1.0f,Number v4=0.0f,Number v5=0.0f);
 			virtual ~ScenePrimitive();
 
+			virtual String className();
+		
 			/**
 			* A cube.
 			* v1 - X size

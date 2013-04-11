@@ -151,7 +151,7 @@ namespace Polycode {
 			Matrix4 restMatrix;
 			Matrix4 baseMatrix;
 		
-		
+			virtual String className();
 		
 		protected:
 			Mesh *boneMesh;

@@ -402,3 +402,7 @@ void Camera::doCameraTransform() {
 	camMatrix = camMatrix.inverse();
 	CoreServices::getInstance()->getRenderer()->multModelviewMatrix(camMatrix);		
 }
+
+String Camera::className() {
+	return "Camera";
+}

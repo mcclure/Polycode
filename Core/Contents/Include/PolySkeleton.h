@@ -211,6 +211,8 @@ namespace Polycode {
 			*/
 			SkeletonAnimation *getCurrentAnimation() const { return currentAnimation; }
 		
+			virtual String className();
+		
 		protected:
 		
 			SceneEntity *bonesEntity;

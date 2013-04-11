@@ -150,6 +150,8 @@ namespace Polycode {
 			*/
 			bool frustumCulling;
 			
+			virtual String className();
+		
 		protected:
 		
 			Number orthoSizeX;

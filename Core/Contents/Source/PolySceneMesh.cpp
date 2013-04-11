@@ -308,3 +308,7 @@ void SceneMesh::Render() {
 		 */
 	}	
 }
+
+String SceneMesh::className() {
+	return "SceneMesh";
+}

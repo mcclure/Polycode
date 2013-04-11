@@ -73,3 +73,7 @@ void SceneLabel::setText(const String& newText) {
 	
 	bBoxRadius = label->getWidth()*scale;
 }
+
+String SceneLabel::className() {
+	return "SceneLabel";
+}
