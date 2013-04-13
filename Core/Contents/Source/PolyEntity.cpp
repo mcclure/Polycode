@@ -775,9 +775,9 @@ String Entity::description() {
 		r += " custEntityType:";
 		r += custEntityType;
 	}
-	if (custEntityType.size()) {
+	if (id.size()) {
 		r += " id:";
-		r += custEntityType;
+		r += id;
 	}
 	r += " position:";
 	r += String::NumberToString(_position.x);
