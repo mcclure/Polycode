@@ -47,7 +47,7 @@ Renderer::Renderer() : currentTexture(NULL), xRes(0), yRes(0), renderMode(0), or
 	setAmbientColor(0.0,0.0,0.0);
 	cullingFrontFaces = false;
 	scissorEnabled = false;
-	
+	blendNormalAsPremultiplied = false;
 	
 	doClearBuffer = true;
 }
@@ -343,6 +343,7 @@ void *Renderer::getDataPointerForName(const String &name) {
 	if(name == "ambient_color") {
 		return (void*)&ambientColor;
 	}
+	return NULL;
 }
 
 void Renderer::setRendererShaderParams(Shader *shader, ShaderBinding *binding) {

@@ -541,6 +541,8 @@ PolycodeFrame::PolycodeFrame() : ScreenEntity() {
 	topBarBg = new ScreenShape(ScreenShape::SHAPE_RECT, 2,2);
 	topBarBg->setColorInt(21, 18, 17, 255);
 	topBarBg->setPositionMode(ScreenEntity::POSITION_TOPLEFT);
+	topBarBg->processInputEvents = true;
+	topBarBg->blockMouseInput = true;
 	addChild(topBarBg);
 	
 	logo = new ScreenImage("Images/barlogo.png");	
@@ -598,6 +600,10 @@ PolycodeFrame::PolycodeFrame() : ScreenEntity() {
 	
 	yesNoPopup = new YesNoPopup();
 	yesNoPopup->visible = false;
+	
+	yesNoCancelPopup = new YesNoCancelPopup();
+	yesNoCancelPopup->visible = false;
+	
 	
 	aboutWindow = new UIWindow("", 800, 440);
 	aboutWindow->closeOnEscape = true;
@@ -695,6 +701,19 @@ PolycodeProjectBrowser *PolycodeFrame::getProjectBrowser() {
 	return projectBrowser;
 }
 
+void PolycodeFrame::removeEditor(PolycodeEditor *editor) {
+	for(int i=0; i < editors.size(); i++) {
+		if(editors[i] == editor) {
+			editors.erase(editors.begin()+i);
+			editorHolder->removeChild(editor);
+			if(editor == editorHolder->currentEditor) {
+				editorHolder->currentEditor = NULL;
+			}
+			return;
+		}
+	}
+}
+
 void PolycodeFrame::addEditor(PolycodeEditor *editor) {
 	editors.push_back(editor);
 	editorHolder->addChild(editor);
@@ -762,13 +781,14 @@ void PolycodeFrame::handleEvent(Event *event) {
 			
 			if(editorManager->getCurrentEditor() == editorManager->openEditors[i]) {
 				currentFileSelector->setSelectedIndex(i);
-			}
-			
+			}			
 		}
 	}
 	
 	if(event->getDispatcher() == projectManager) {
-		currentProjectTitle->setText(projectManager->getActiveProject()->getProjectName());
+        if(projectManager->getActiveProject()) {
+            currentProjectTitle->setText(projectManager->getActiveProject()->getProjectName());
+        }
 	}
 	
 	if(event->getDispatcher() == aboutOKButton && event->getEventType() == "UIEvent") {

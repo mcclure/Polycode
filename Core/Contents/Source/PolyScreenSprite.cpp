@@ -30,6 +30,10 @@
 using std::vector;
 using namespace Polycode;
 
+ScreenSprite* ScreenSprite::ScreenSpriteFromImageFile(const String& fileName, Number spriteWidth, Number spriteHeight) {
+	return new ScreenSprite(fileName, spriteWidth, spriteHeight);
+}
+
 ScreenSprite::ScreenSprite(const String& fileName) : ScreenShape(ScreenShape::SHAPE_RECT, 1, 1) {
 
 	currentFrame = 0;
@@ -168,6 +172,18 @@ void ScreenSprite::setSpriteSize(const Number spriteWidth, const Number spriteHe
 
 SpriteAnimation *ScreenSprite::getCurrentAnimation() {
 	return currentAnimation;
+}
+
+unsigned int ScreenSprite::getCurrentAnimationFrame() { 
+   return currentFrame; 
+}
+
+bool ScreenSprite::isCurrentAnimationFinished() {
+    if(currentAnimation) {
+        if(currentFrame >= currentAnimation->numFrames)
+            return true;
+    }
+    return false;
 }
 
 void SpriteAnimation::setOffsetsFromFrameString(const String& frames) {

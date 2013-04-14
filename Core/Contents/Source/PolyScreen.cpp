@@ -46,7 +46,7 @@ Screen::Screen() : EventDispatcher() {
 	processTouchEventsAsMouse = false;
 
 	rootEntity.processInputEvents = true;
-
+	rootEntity.setPositionMode(ScreenEntity::POSITION_CENTER);
 	rootEntity.setRenderer(renderer);
 	rootEntity.setDefaultScreenOptions(false);		
 }

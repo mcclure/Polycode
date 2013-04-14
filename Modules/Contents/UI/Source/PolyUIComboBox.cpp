@@ -104,13 +104,16 @@ UIComboBox::~UIComboBox() {
 	for(int c = 0; c < items.size(); c++)
 		delete items[c];
 	
-	delete dropDownImage;
-	delete bgBox;
-	delete selectedLabel;
+	if(!ownsChildren) {
+		delete dropDownImage;
+		delete bgBox;
+		delete selectedLabel;
+	}
 }
 
 void UIComboBox::clearItems() {
 	items.clear();
+	selectedLabel->setText("<None>");
 }
 			
 int UIComboBox::addComboItem(String itemName, void *data) {

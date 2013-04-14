@@ -148,7 +148,7 @@ UIColorPicker::UIColorPicker() : UIWindow(L"", 300, 240) {
 	
 	visible = false;
 	enabled = false;
-	
+	suppressTextChangeEvent = false;
 }
 
 void UIColorPicker::cancelColorListeners() {
@@ -211,10 +211,11 @@ void UIColorPicker::setPickerColor(Color newColor) {
 void UIColorPicker::setSaturationAndValue(Number S, Number V) {
 	currentS = S;
 	currentV = V;	
-	updateSelectedColor();
+	updateSelectedColor(true, false, false);
 }
 
-void UIColorPicker::updateSelectedColor(bool updateTextFields) {
+void UIColorPicker::updateSelectedColor(bool updateTextFields, bool updateHue, bool updateSV) {
+	
 	selectedColor.setColorHSV(currentH, currentS, currentV);
 	selectedColor.a = colorAlpha;
 	
@@ -226,9 +227,13 @@ void UIColorPicker::updateSelectedColor(bool updateTextFields) {
 	mainColorRect->color.a = colorAlpha;
 	
 	if(updateTextFields) {
+		suppressTextChangeEvent = true;
 		rTextInput->setText(String::IntToString(newR));
+		suppressTextChangeEvent = true;		
 		gTextInput->setText(String::IntToString(newG));
+		suppressTextChangeEvent = true;		
 		bTextInput->setText(String::IntToString(newB));
+		suppressTextChangeEvent = true;		
 		aTextInput->setText(String::IntToString(newA));
 	}
 	
@@ -243,11 +248,15 @@ void UIColorPicker::updateSelectedColor(bool updateTextFields) {
 	mainColorRect->getMesh()->arrayDirtyMap[RenderDataArray::COLOR_DATA_ARRAY] = true;				
 	
 		
-	hueSelector->setPositionY(hueFrame->getPosition().y + hueFrame->getHeight() - ((currentH/360.0) * hueFrame->getHeight()));
-	lastHueSelectorPosition = hueSelector->getPosition().y;
+	if(updateHue) {
+		hueSelector->setPositionY(hueFrame->getPosition().y + hueFrame->getHeight() - ((currentH/360.0) * hueFrame->getHeight()));
+		lastHueSelectorPosition = hueSelector->getPosition().y;
+	}
 	
-	mainSelector->setPosition(mainColorRect->getPosition().x + (currentS * mainColorRect->getWidth()), mainColorRect->getPosition().y + mainColorRect->getHeight() - (currentV * mainColorRect->getHeight()));					
-	lastMainSelectorPosition = mainSelector->getPosition2D();
+	if(updateSV) {
+		mainSelector->setPosition(mainColorRect->getPosition().x + (currentS * mainColorRect->getWidth()), mainColorRect->getPosition().y + mainColorRect->getHeight() - (currentV * mainColorRect->getHeight()));					
+		lastMainSelectorPosition = mainSelector->getPosition2D();
+	}
 	
 	alphaSlider->setSliderValue(colorAlpha);
 
@@ -264,7 +273,11 @@ void UIColorPicker::handleEvent(Event *event) {
 		switch(event->getEventCode()) {
 			case UIEvent::CHANGE_EVENT:
 			{
-				rebuildFromTextInputs();
+				if(!suppressTextChangeEvent) {
+					rebuildFromTextInputs();
+				} else {
+					suppressTextChangeEvent = false;
+				}
 			}
 			break;
 		}	
@@ -286,8 +299,8 @@ void UIColorPicker::handleEvent(Event *event) {
 			case InputEvent::EVENT_MOUSEDOWN:
 			{
 				InputEvent *inputEvent = (InputEvent*) event;
-				hueSelector->setPositionY(inputEvent->getMousePosition().y);
-				hueSelector->startDrag(inputEvent->mousePosition.x-hueSelector->getPosition().x,inputEvent->mousePosition.y-hueSelector->getPosition().y);		
+				hueSelector->setPositionY(inputEvent->getMousePosition().y+hueFrame->position.y);
+				hueSelector->startDrag(inputEvent->mousePosition.x-hueSelector->getPosition().x,inputEvent->mousePosition.y-hueSelector->getPosition().y+hueFrame->position.y);		
 				Number newHue = 360.0 - (((inputEvent->getMousePosition().y-hueFrame->getPosition().y)/((hueFrame->getPosition().y+hueFrame->getHeight())-hueFrame->getPosition().y)) * 360.0f);
 				setHue(newHue);
 						
@@ -308,15 +321,13 @@ void UIColorPicker::handleEvent(Event *event) {
 		switch(event->getEventCode()) {
 			case InputEvent::EVENT_MOUSEDOWN:
 			{
-				InputEvent *inputEvent = (InputEvent*) event;			
-				mainSelector->setPosition(inputEvent->getMousePosition().x, inputEvent->getMousePosition().y);
+				InputEvent *inputEvent = (InputEvent*) event;
+				mainSelector->setPosition(inputEvent->getMousePosition().x+mainColorRect->position.x, inputEvent->getMousePosition().y+mainColorRect->position.y);
+				mainSelector->startDrag(inputEvent->mousePosition.x-mainSelector->getPosition().x+mainColorRect->position.x,inputEvent->mousePosition.y-mainSelector->getPosition().y+mainColorRect->position.y);
 				
-				mainSelector->startDrag(inputEvent->mousePosition.x-mainSelector->getPosition().x,inputEvent->mousePosition.y-mainSelector->getPosition().y);
-				
-				Number newV = 1.0 - ((inputEvent->getMousePosition().y-mainColorRect->getPosition().y)/((mainColorRect->getPosition().y+mainColorRect->getHeight())-mainColorRect->getPosition().y));
+				Number newV = 1.0 - inputEvent->getMousePosition().y / mainColorRect->getHeight();
+				Number newS = inputEvent->getMousePosition().x / mainColorRect->getWidth();
 
-				Number newS = ((inputEvent->getMousePosition().x-mainColorRect->getPosition().x)/((mainColorRect->getPosition().x+mainColorRect->getWidth())-mainColorRect->getPosition().x));
-					
 				setSaturationAndValue(newS, newV);
 			}
 			break;
@@ -339,7 +350,7 @@ void UIColorPicker::setHue(Number hueNum) {
 		hueNum = 359.9999;		
 		
 	currentH = hueNum;
-	updateSelectedColor();
+	updateSelectedColor(true, false, false);
 }
 
 UIColorPicker::~UIColorPicker() {
@@ -367,12 +378,11 @@ void UIColorPicker::Update() {
 		Number newPosX = lastMainSelectorPosition.x;
 		Number newPosY = lastMainSelectorPosition.y;		
 		
-		Number newV = 1.0 - ((newPosY-mainColorRect->getPosition().y)/((mainColorRect->getPosition().y+mainColorRect->getHeight())-mainColorRect->getPosition().y));
+		Number newV = 1.0 - (newPosY - mainColorRect->getPosition().y) / mainColorRect->getHeight();
 
-		Number newS = ((newPosX-mainColorRect->getPosition().x)/((mainColorRect->getPosition().x+mainColorRect->getWidth())-mainColorRect->getPosition().x));
+		Number newS = (newPosX - mainColorRect->getPosition().x) / mainColorRect->getWidth();
 					
-		setSaturationAndValue(newS, newV);		
-
+		setSaturationAndValue(newS, newV);	
 	}
 	
 	if(hueSelector->getPosition().y != lastHueSelectorPosition) {
@@ -446,9 +456,11 @@ Color UIColorBox::getSelectedColor() {
 UIColorBox::~UIColorBox() {
 	colorPicker->removeAllHandlersForListener(this);
 	
-	delete bgImage;
-	delete colorShape;
-	delete frameImage;
+	if(!ownsChildren) {
+		delete bgImage;
+		delete colorShape;
+		delete frameImage;
+	}
 }
 
 void UIColorBox::setBoxColor(Color newColor) {

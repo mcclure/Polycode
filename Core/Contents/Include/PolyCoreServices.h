@@ -68,6 +68,9 @@ namespace Polycode {
 			
 			void setCore(Core *core);
 		
+			/**
+			* Reloads the event listeners CoreServices configures as part of construction/setCore. Useful if removeAllListeners is called on the core input object.
+			*/
 			void setupBasicListeners();
 			
 			/**

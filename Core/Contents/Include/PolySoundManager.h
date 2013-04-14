@@ -25,11 +25,13 @@
 #include "PolyVector3.h"
 
 #if POLYCODE_USE_OPENAL
-#include "al.h"
-#include "alc.h"
+#if defined(__APPLE__) && defined(__MACH__)
+    #include <OpenAL/al.h>
+    #include <OpenAL/alc.h>
 #else
-typedef void ALCdevice;
-typedef void ALCcontext;
+    #include "al.h"
+    #include "alc.h"
+#endif
 #endif
 
 namespace Polycode {
