@@ -28,6 +28,7 @@
 #include "OSBasics.h"
 #include <string>
 #include <vector>
+#include <limits>
 
 #define MAX_FLOAT (std::numeric_limits<double>::infinity())
 
