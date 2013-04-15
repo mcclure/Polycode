@@ -267,7 +267,7 @@ int Sound::getSampleLength() {
 	return sampleLength;
 }
 
-void Sound::setPositionalProperties(Number _referenceDistance, Number _maxDistance) { 
+void Sound::setPositionalProperties(Number referenceDistance, Number maxDistance) { 
 	setReferenceDistance(referenceDistance);
 	setMaxDistance(maxDistance);
 }
