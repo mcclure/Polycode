@@ -32,6 +32,9 @@
     #include "al.h"
     #include "alc.h"
 #endif
+#else
+struct ALCdevice;
+struct ALCcontext;
 #endif
 
 namespace Polycode {

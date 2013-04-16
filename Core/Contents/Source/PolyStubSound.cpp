@@ -50,6 +50,9 @@ Sound::~Sound() {
 void Sound::loadFile(String fileName) {
 }
 
+void Sound::reloadProperties() {
+}
+
 void Sound::soundCheck(bool result, const String& err) {
 }
 
