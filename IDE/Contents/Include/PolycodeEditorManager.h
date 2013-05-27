@@ -35,6 +35,8 @@ class PolycodeEditorManager : public EventDispatcher {
 		PolycodeEditor *getEditorForPath(String path);
 		PolycodeEditor *createEditorForExtension(String extension);
 		void registerEditorFactory(PolycodeEditorFactory *editorFactory);
+		
+		PolycodeEditorFactory *getEditorFactoryForExtension(String extension);
 	
 		void handleEvent(Event *event);
 		
@@ -47,6 +49,7 @@ class PolycodeEditorManager : public EventDispatcher {
 		
 		bool hasUnsavedFiles();
 		bool hasUnsavedFilesForProject(PolycodeProject *project);
+		void saveFilesForProject(PolycodeProject *project);
 		
 	//	int close
 	std::vector<PolycodeEditor*> openEditors;

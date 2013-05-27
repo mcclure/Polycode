@@ -31,6 +31,16 @@ PolycodeEditorManager::~PolycodeEditorManager() {
 	
 }
 
+PolycodeEditorFactory *PolycodeEditorManager::getEditorFactoryForExtension(String extension) {
+	for(int i=0;i < editorFactories.size(); i++) {
+		PolycodeEditorFactory *factory = editorFactories[i];
+		if(factory->canHandleExtension(extension)) {
+			return factory;
+		}
+	}
+	return NULL;
+}
+
 PolycodeEditor *PolycodeEditorManager::createEditorForExtension(String extension) {
 	for(int i=0;i < editorFactories.size(); i++) {
 		PolycodeEditorFactory *factory = editorFactories[i];
@@ -68,6 +78,13 @@ void PolycodeEditorManager::saveAll() {
 	for(int i=0; i < openEditors.size();i++) {
 		PolycodeEditor *editor = openEditors[i];
 		editor->saveFile();
+	}
+}
+
+void PolycodeEditorManager::saveFilesForProject(PolycodeProject *project) {
+	for(int i=0; i < openEditors.size(); i++) {
+		if(openEditors[i]->hasChanges() && openEditors[i]->parentProject == project)
+			openEditors[i]->saveFile();
 	}
 }
 

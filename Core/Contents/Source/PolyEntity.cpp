@@ -59,6 +59,8 @@ Entity::Entity() : EventDispatcher() {
 	enableScissor = false;
 	
 	editorOnly = false; 
+
+	tags = NULL;
 }
 
 Entity *Entity::getEntityById(String id, bool recursive) {
@@ -98,7 +100,7 @@ void Entity::applyClone(Entity *clone, bool deepClone, bool ignoreEditorOnly) {
 	clone->depthWrite = depthWrite;
 	clone->depthTest = depthTest;
 	clone->blendingMode = blendingMode;
-	clone->colorAffectsChildren;
+	clone->colorAffectsChildren = colorAffectsChildren;
 	clone->visibilityAffectsChildren = visibilityAffectsChildren;
 	clone->depthOnly = depthOnly;
 	clone->setUserData(getUserData());
@@ -109,8 +111,13 @@ void Entity::applyClone(Entity *clone, bool deepClone, bool ignoreEditorOnly) {
 	clone->scissorBox = scissorBox;
 	clone->editorOnly = editorOnly;	
 	clone->id = id;
-	for(int i=0; i < tags.size(); i++) {	
-		clone->addTag(tags[i]);
+	if(tags == NULL) {
+		clone->tags = NULL;
+	} else {
+		clone->tags = new std::vector<String>();
+		for(int i=0; i < tags->size(); i++) {	
+			clone->addTag((*tags)[i]);
+		}
 	}
 	clone->setRenderer(renderer);
 
@@ -215,6 +222,7 @@ void Entity::removeChild(Entity *entityToRemove) {
 	for(int i=0;i<children.size();i++) {
 		if(children[i] == entityToRemove) {
 			children.erase(children.begin()+i);
+			return;
 		}
 	}	
 }
@@ -286,6 +294,7 @@ Entity::~Entity() {
 			delete children[i];
 		}
 	}
+	if(tags) delete tags;
 }
 
 Vector3 Entity::getChildCenter() const {
@@ -408,7 +417,7 @@ void Entity::transformAndRender() {
 
 				
 			if(finalScrissorBox.x+finalScrissorBox.w > oldScissorBox.x + oldScissorBox.w)
-				finalScrissorBox.w = oldScissorBox.x - finalScrissorBox.x;
+				finalScrissorBox.w = oldScissorBox.x + oldScissorBox.w - finalScrissorBox.x;
 
 			if(finalScrissorBox.y < oldScissorBox.y)
 				finalScrissorBox.y = oldScissorBox.y;
@@ -416,7 +425,7 @@ void Entity::transformAndRender() {
 				finalScrissorBox.y = oldScissorBox.y + oldScissorBox.h;
 
 			if(finalScrissorBox.y+finalScrissorBox.h > oldScissorBox.y + oldScissorBox.h)
-				finalScrissorBox.h = oldScissorBox.y - finalScrissorBox.y;
+				finalScrissorBox.h = oldScissorBox.y + oldScissorBox.h - finalScrissorBox.y;
 
 		}
 		
@@ -425,8 +434,8 @@ void Entity::transformAndRender() {
 		
 	renderer->pushMatrix();
 	if(ignoreParentMatrix && parentEntity) {
-		renderer->multModelviewMatrix(parentEntity->getConcatenatedMatrix().inverse());
-//		renderer->setCurrentModelMatrix(parentEntity->getConcatenatedMatrix().inverse());
+		renderer->multModelviewMatrix(parentEntity->getConcatenatedMatrix().Inverse());
+//		renderer->setCurrentModelMatrix(parentEntity->getConcatenatedMatrix().Inverse());
 	}
 
 		renderer->multModelviewMatrix(transformMatrix);
@@ -749,30 +758,36 @@ Number Entity::getCombinedRoll() const {
 }
 
 unsigned int Entity::getNumTags() const {
-	return tags.size();
+	if(!tags) return 0;
+	return tags->size();
 }
 
 String Entity::getTagAtIndex(unsigned int index) const {
-	if(index < tags.size())
-		return tags[index];
+	if(!tags) return "";
+	if(index < tags->size())
+		return (*tags)[index];
 	return "";
 }
 
 bool Entity::hasTag(String tag) const {
-
-	for(int i=0; i < tags.size(); i++) {
-		if(tags[i] == tag)
+	if(!tags) return false;
+	for(int i=0; i < tags->size(); i++) {
+		if((*tags)[i] == tag)
 			return true;
 	}
 	return false;
 }
 			
 void Entity::clearTags() {
-	tags.clear();
+	if(!tags) return;
+	tags->clear();
 }
 
 void Entity::addTag(String tag) {
-	tags.push_back(tag);
+	if(!tags) tags = new std::vector<String>();
+	if(!hasTag(tag)) {
+		tags->push_back(tag);
+	}
 }
 
 String Entity::description() {

@@ -59,6 +59,9 @@ PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
 PFNGLENABLEVERTEXATTRIBARRAYARBPROC glEnableVertexAttribArrayARB;
 PFNGLBINDATTRIBLOCATIONPROC glBindAttribLocation;
 
+PFNGLGETPROGRAMIVPROC glGetProgramiv;
+PFNGLGETACTIVEUNIFORMPROC glGetActiveUniform;
+
 // GL_EXT_framebuffer_object
 PFNGLISRENDERBUFFEREXTPROC glIsRenderbufferEXT;
 PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT;
@@ -119,6 +122,10 @@ void OpenGLRenderer::initOSSpecific(){
 		glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
 		glEnableVertexAttribArrayARB = (PFNGLENABLEVERTEXATTRIBARRAYARBPROC)wglGetProcAddress("glEnableVertexAttribArrayARB");
 		glBindAttribLocation = (PFNGLBINDATTRIBLOCATIONPROC)wglGetProcAddress("glBindAttribLocation");
+
+		
+		glGetProgramiv = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
+		glGetActiveUniform = (PFNGLGETACTIVEUNIFORMPROC)wglGetProcAddress("glGetActiveUniform");
 
         glIsRenderbufferEXT = (PFNGLISRENDERBUFFEREXTPROC)wglGetProcAddress("glIsRenderbufferEXT");
         glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)wglGetProcAddress("glBindRenderbufferEXT");
@@ -243,7 +250,7 @@ Vector3 OpenGLRenderer::projectRayFrom2DCoordinate(Number x, Number y) {
 	GLdouble nearPlane[3],farPlane[3];
 	
 	GLdouble mv[16];
-	Matrix4 camInverse = cameraMatrix.inverse();	
+	Matrix4 camInverse = cameraMatrix.Inverse();	
 	Matrix4 cmv;
 	cmv.identity();
 	cmv = cmv * camInverse;

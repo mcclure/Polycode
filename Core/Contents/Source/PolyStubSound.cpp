@@ -25,7 +25,9 @@
 // for the appropriate symbols, or builds will fail, lua bindings will fail, etc.
 
 #include "PolySound.h"
+#define OV_EXCLUDE_STATIC_CALLBACKS
 #include <vorbis/vorbisfile.h>
+#undef OV_EXCLUDE_STATIC_CALLBACKS
 #include "PolyString.h"
 #include "PolyLogger.h"
 

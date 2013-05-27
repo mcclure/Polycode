@@ -21,8 +21,61 @@
 */
 
 #include "PolyShader.h"
+#include "PolyMatrix4.h"
 
 using namespace Polycode;
+
+void *ProgramParam::createParamData(int type) {
+	switch (type) {
+		case PARAM_NUMBER:
+		{
+			Number *val = new Number();
+			return (void*)val;
+		}
+		break;
+		case PARAM_VECTOR2:
+		{
+			Vector2 *val = new Vector2();
+			return (void*)val;
+		}
+		break;
+		case PARAM_VECTOR3:
+		{
+			Vector3 *val = new Vector3();
+			return (void*)val;
+		}
+		break;		
+		case PARAM_COLOR:
+		{
+			Color *val = new Color();
+			return (void*)val;
+		}
+		break;		
+		case PARAM_MATRIX:
+		{
+			Matrix4 *val = new Matrix4();
+			return (void*)val;
+		}
+		break;		
+		default:		
+			return NULL;
+		break;
+	}
+}
+
+ShaderProgram::ShaderProgram(int type) : Resource(Resource::RESOURCE_PROGRAM) {
+	this->type = type;
+}
+
+ShaderProgram::~ShaderProgram() {
+
+}
+
+void ShaderProgram::reloadResource() {
+	reloadProgram();
+	Resource::reloadResource();	
+}
+
 
 ShaderBinding::ShaderBinding(Shader *shader) {
 	this->shader = shader;
@@ -68,6 +121,15 @@ LocalShaderParam *ShaderBinding::addLocalParam(const String& name, void *ptr) {
 	return newParam;
 }
 
+LocalShaderParam * ShaderBinding::addParam(int type, const String& name) {
+	void *defaultData = ProgramParam::createParamData(type);
+	LocalShaderParam *newParam = new LocalShaderParam();
+	newParam->data = defaultData;
+	newParam->name = name;
+	localParams.push_back(newParam);
+	return newParam;
+}
+
 void ShaderBinding::addRenderTargetBinding(RenderTargetBinding *binding) {
 	renderTargetBindings.push_back(binding);
 	if(binding->mode == RenderTargetBinding::MODE_IN) {
@@ -108,6 +170,17 @@ Shader::Shader(int type) : Resource(Resource::RESOURCE_SHADER) {
 	numSpotLights = 0;
 	numAreaLights = 0;
 	this->type = type;
+	vp = NULL;
+	fp = NULL;
+}
+
+int Shader::getExpectedParamType(String name) {
+	for(int i=0; i < expectedParams.size(); i++) {
+		if(expectedParams[i].name == name) {
+			return expectedParams[i].type;
+		}
+	}
+	return ProgramParam::PARAM_UNKNOWN;
 }
 
 Shader::~Shader() {

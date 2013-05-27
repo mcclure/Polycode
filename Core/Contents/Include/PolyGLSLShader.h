@@ -49,13 +49,18 @@ namespace Polycode {
 
 			ShaderBinding *createBinding();
 			virtual void reload();
-		
-			unsigned int shader_id;		
-			GLSLProgram *vp;
-			GLSLProgram *fp;			
 			
-		protected:
-			void linkProgram();
+			void handleEvent(Event *event);
+			
+			static int getPolycodeParamType(int glType);
+			
+			void setVertexProgram(ShaderProgram *vp);
+			void setFragmentProgram(ShaderProgram *fp);			
+				
+			unsigned int shader_id;		
+			
+			void linkProgram();			
+			void unlinkProgram();
 	};
 	
 	class _PolyExport GLSLShaderBinding : public ShaderBinding {
@@ -67,7 +72,6 @@ namespace Polycode {
 			void addCubemap(const String& name, Cubemap *cubemap);
 			void clearTexture(const String& name);
 			Texture *getTexture(const String& name);
-			void addParam(const String& type, const String& name, const String& value);
 			
 			std::vector<GLSLTextureBinding> textures;
 			std::vector<GLSLCubemapBinding> cubemaps;

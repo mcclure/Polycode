@@ -86,7 +86,6 @@ UIHSizer::~UIHSizer() {
 
 void UIHSizer::handleEvent(Event *event) {
 	if(event->getDispatcher() == separatorHitShape) {
-		InputEvent *inputEvent = (InputEvent*)event;
 		switch (event->getEventCode()) {
 			case InputEvent::EVENT_MOUSEDOWN:
 				resizing = true;
@@ -131,6 +130,10 @@ void UIHSizer::Resize(Number width, Number height) {
 	this->height = height;
 	matrixDirty = true;
 	updateSizer();
+}
+
+Number UIHSizer::getMainWidth() {
+	return mainWidth;
 }
 
 void UIHSizer::setMainWidth(Number width) {

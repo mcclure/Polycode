@@ -81,7 +81,10 @@ namespace Polycode {
 			static const int COMPLETE_EVENT = EVENTBASE_EVENT+0;
 			static const int CHANGE_EVENT = EVENTBASE_EVENT+1;
 			static const int CANCEL_EVENT = EVENTBASE_EVENT+2;
-			
+			static const int NOTIFY_EVENT = EVENTBASE_EVENT+3;
+			static const int FIRE_EVENT = EVENTBASE_EVENT+4;
+			static const int RESOURCE_RELOAD_EVENT = EVENTBASE_EVENT+5;
+									
 			static const int EVENTBASE_NONPOLYCODE = 0x10000;
 		
 			bool deleteOnDispatch;

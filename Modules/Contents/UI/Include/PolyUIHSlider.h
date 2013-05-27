@@ -40,6 +40,8 @@ namespace Polycode {
 			void handleEvent(Event *event);
 			void Update();
 			
+			void Resize(Number width, Number height);
+			
 			void setSliderValue(Number val);
 			Number getSliderValue();			
 			
@@ -47,8 +49,10 @@ namespace Polycode {
 		
 			Number gripPos;
 			
-			Number labelXPos;
-			Number labelYPos;
+			bool dragging;
+			
+			Number bgHeight;
+			
 			UIBox *bgRect;
 			ScreenImage *gripRect;
 			
@@ -58,7 +62,5 @@ namespace Polycode {
 			Number sliderWidth;
 			
 			ScreenShape *bgHitBox;
-			ScreenLabel *buttonLabel;
-			bool pressedDown;
 	};
 }

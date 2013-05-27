@@ -133,7 +133,17 @@ Win32Core::~Win32Core() {
 }
 
 void Win32Core::enableMouse(bool newval) {
-	ShowCursor(newval);	
+	ShowCursor(newval);
+
+	Core::enableMouse(newval);
+}
+
+void Win32Core::captureMouse(bool newval) {
+	// Capture the mouse in the window holding
+	// our polycode screen.
+	SetCapture(hWnd);
+
+	Core::captureMouse(newval);
 }
 
 void Win32Core::warpCursor(int x, int y) {
@@ -150,19 +160,20 @@ unsigned int Win32Core::getTicks() {
 	return GetTickCount();
 }
 
+void Win32Core::Render() {
+	renderer->BeginRender();
+	services->Render();
+	renderer->EndRender();
+	SwapBuffers(hDC);
+}
+
 bool Win32Core::Update() {
 	if(!running)
 		return false;
-
+	doSleep();
 	checkEvents();
 	Gamepad_processEvents();
-
-	renderer->BeginRender();
 	updateCore();
-	renderer->EndRender();
-	
-	SwapBuffers(hDC);
-	doSleep();
 	return running;
 }
 
@@ -477,20 +488,16 @@ PolyKEY Win32Core::mapKey(LPARAM lParam, WPARAM wParam) {
 					else
 						wParam = VK_LCONTROL;
 					break;
-				case 33:
+				case VK_MENU:
 					if ( lParam&EXTENDED_KEYMASK )
 						wParam = VK_RMENU;
 					else
 						wParam = VK_LMENU;
 					break;
 				case VK_SHIFT:
-					// We can't tell if it's LSHIFT or RSHIFT,
-					// so use GetKeyState to tell which it is.
-					if( GetKeyState(VK_LSHIFT) ) {
-						wParam = VK_LSHIFT;
-					} else {
-						wParam = VK_RSHIFT;
-					}
+					// Use MapVirtualKey to determine whether it's LSHIFT or RSHIFT by scancode.
+					UINT scancode = (lParam & 0x00ff0000) >> 16;
+					wParam = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
 					break;
 			}
 

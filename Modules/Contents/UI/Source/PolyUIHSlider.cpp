@@ -33,7 +33,7 @@ UIHSlider::UIHSlider(Number start, Number end, Number width) : UIElement() {
 	
 	String bgImage = conf->getStringValue("Polycode", "uiHSliderBg");
 	String gripImage = conf->getStringValue("Polycode", "uiHSliderGrip");	
-	Number bgHeight = conf->getNumericValue("Polycode", "uiHSliderBgHeight");
+	bgHeight = conf->getNumericValue("Polycode", "uiHSliderBgHeight");
 
 	Number st = conf->getNumericValue("Polycode", "uiHSliderBgT");
 	Number sr = conf->getNumericValue("Polycode", "uiHSliderBgR");
@@ -75,6 +75,7 @@ UIHSlider::UIHSlider(Number start, Number end, Number width) : UIElement() {
 	gripRect->setDragLimits(Rectangle(0,floor(bgHeight/2.0),width,0));
 	
 	gripPos = 0;
+	dragging = false;
 }
 
 UIHSlider::~UIHSlider() {
@@ -96,6 +97,18 @@ void UIHSlider::setSliderValue(Number val) {
 Number UIHSlider::getSliderValue() {
 	return sliderValue;
 }
+
+void UIHSlider::Resize(Number width, Number height) {
+	bgRect->resizeBox(width, bgHeight);
+	this->width = width;
+	this->height = height;	
+	matrixDirty = true;	
+	setHitbox(width,height);
+	sliderWidth = width;
+	gripRect->setDragLimits(Rectangle(0,floor(bgHeight/2.0),width,0));	
+	setSliderValue(sliderValue);
+	bgHitBox->setShapeSize(width,  gripRect->getHeight());
+}
 			
 void UIHSlider::handleEvent(Event *event) {
 
@@ -107,10 +120,15 @@ void UIHSlider::handleEvent(Event *event) {
 				gripPos = gripRect->getPosition().x;				
 				sliderValue = startValue+((endValue - startValue) * (gripPos/sliderWidth));				
 				gripRect->startDrag(inputEvent->mousePosition.x-gripRect->getPosition().x,inputEvent->mousePosition.y-gripRect->getPosition().y);
+				dragging = true;
 			break;
 			case InputEvent::EVENT_MOUSEUP:
 			case InputEvent::EVENT_MOUSEUP_OUTSIDE:
 				gripRect->stopDrag();
+				if(dragging) {
+					dispatchEvent(new UIEvent(), UIEvent::CHANGE_EVENT);
+				}
+				dragging = false;				
 			break;
 		}	
 	}
@@ -120,10 +138,15 @@ void UIHSlider::handleEvent(Event *event) {
 		switch(event->getEventCode()) {
 			case InputEvent::EVENT_MOUSEDOWN:
 				gripRect->startDrag(inputEvent->mousePosition.x-gripRect->getPosition().x,inputEvent->mousePosition.y-gripRect->getPosition().y);
+				dragging = true;				
 			break;
 			case InputEvent::EVENT_MOUSEUP:
 			case InputEvent::EVENT_MOUSEUP_OUTSIDE:		
 				gripRect->stopDrag();
+				if(dragging) {
+					dispatchEvent(new UIEvent(), UIEvent::CHANGE_EVENT);
+				}
+				dragging = false;				
 			break;
 		}	
 	}
@@ -134,6 +157,5 @@ void UIHSlider::Update() {
 	if(gripRect->getPosition().x != gripPos) {
 		gripPos = gripRect->getPosition().x;
 		sliderValue = startValue+((endValue - startValue) * (gripPos/sliderWidth));
-		dispatchEvent(new UIEvent(), UIEvent::CHANGE_EVENT);
 	}
 }

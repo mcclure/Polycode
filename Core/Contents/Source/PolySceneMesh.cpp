@@ -154,8 +154,9 @@ Texture *SceneMesh::getTexture() {
 }
 
 
-void SceneMesh::loadTexture(const String& fileName, bool clamp) {
-	texture = CoreServices::getInstance()->getMaterialManager()->createTextureFromFile(fileName, clamp);
+void SceneMesh::loadTexture(const String& fileName) {
+	MaterialManager *materialManager = CoreServices::getInstance()->getMaterialManager();
+	texture = materialManager->createTextureFromFile(fileName, materialManager->clampDefault, materialManager->mipmapsDefault);
 	ownsTexture = false; // Texture is owned by material manager, not mesh.
 }
 

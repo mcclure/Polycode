@@ -25,7 +25,7 @@
 
 using namespace Polycode;
 
-Renderer::Renderer() : currentTexture(NULL), xRes(0), yRes(0), renderMode(0), orthoMode(false), lightingEnabled(false), clearColor(0.2f, 0.2f, 0.2f, 0.0) {
+Renderer::Renderer() : clearColor(0.2f, 0.2f, 0.2f, 0.0), currentTexture(NULL), renderMode(0), lightingEnabled(false), orthoMode(false), xRes(0), yRes(0) {
 	anisotropy = 0;
 	textureFilteringMode = TEX_FILTERING_LINEAR;
 	currentMaterial = NULL;
@@ -103,7 +103,7 @@ bool Renderer::test2DCoordinateInPolygon(Number x, Number y, Polycode::Polygon *
 	Matrix4 fullMatrix = matrix;
 	
 	if(billboardMode) {
-		Matrix4 camInverse = cameraMatrix.inverse();
+		Matrix4 camInverse = cameraMatrix.Inverse();
 		fullMatrix = fullMatrix * camInverse;
 		
 		fullMatrix.m[0][0] = 1;
@@ -230,7 +230,7 @@ void Renderer::addShaderModule(PolycodeShaderModule *module) {
 void Renderer::sortLights(){
 
 	sorter.basePosition = (getModelviewMatrix()).getPosition();
-	sorter.cameraMatrix = getCameraMatrix().inverse();	
+	sorter.cameraMatrix = getCameraMatrix().Inverse();	
 	sort (areaLights.begin(), areaLights.end(), sorter);
 	sort (spotLights.begin(), spotLights.end(), sorter);	
 }
@@ -347,19 +347,9 @@ void *Renderer::getDataPointerForName(const String &name) {
 }
 
 void Renderer::setRendererShaderParams(Shader *shader, ShaderBinding *binding) {
-	for(int i=0; i < shader->expectedFragmentParams.size(); i++) {
-		if(shader->expectedFragmentParams[i].isAuto) {
-			binding->addLocalParam(shader->expectedFragmentParams[i].name, getDataPointerForName(shader->expectedFragmentParams[i].name));
-		}
+	for(int i=0; i < shader->expectedParams.size(); i++) {
+		binding->addLocalParam(shader->expectedParams[i].name, getDataPointerForName(shader->expectedParams[i].name));
 	}
-
-	for(int i=0; i < shader->expectedVertexParams.size(); i++) {
-		if(shader->expectedVertexParams[i].isAuto) {			
-			binding->addLocalParam(shader->expectedVertexParams[i].name, getDataPointerForName(shader->expectedVertexParams[i].name));
-		}
-	}
-
-
 }
 
 void Renderer::pushDataArrayForMesh(Mesh *mesh, int arrayType) {

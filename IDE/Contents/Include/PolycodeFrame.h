@@ -33,6 +33,7 @@
 #include "ToolWindows.h"
 #include "PolycodeProjectManager.h"
 #include "PolycodeEditorManager.h"
+#include "SettingsWindow.h"
 
 using namespace Polycode;
 
@@ -174,6 +175,10 @@ public:
 	
 	void showAssetBrowser(std::vector<String> extensions);
 	
+	void toggleConsole();
+	void showConsole();
+	void hideConsole();
+	
 	void showCurveEditor();
 	
 	PolycodeProjectBrowser *getProjectBrowser();
@@ -182,6 +187,7 @@ public:
 	ExampleBrowserWindow *exampleBrowserWindow;
 	NewFileWindow *newFileWindow;
 	ExportProjectWindow *exportProjectWindow;
+	SettingsWindow *settingsWindow;
 	
 	AssetBrowser *assetBrowser;
 	
@@ -210,12 +216,22 @@ public:
 	
 	UIWindow *aboutWindow;
 	UIButton *aboutOKButton;
+	
+	UIImageButton *closeFileButton;
+	
+	void updateFileSelector();
+	void showNextEditor();
+	void showPreviousEditor();
+	
 private:
 	
 	int frameSizeX;
 	int frameSizeY;
 	
 	bool willHideModal;
+	
+	bool showingConsole;
+	Number consoleSize;
 
 	ScreenShape *fileDialogBlocker;
 
@@ -247,4 +263,6 @@ private:
 	UIButton *newProjectButton;
 	UIButton *examplesButton;
 	
+	bool displayFilePathInSelector;
+
 };
