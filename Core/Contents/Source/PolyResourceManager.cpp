@@ -80,7 +80,6 @@ void ResourceManager::parseShaders(const String& dirPath, bool recursive) {
 				std::vector<Shader*> shaders = materialManager->loadShadersFromFile(resourceDir[i].fullPath);
 				
 				for(int s=0; s < shaders.size(); s++) {
-					shaders[s]->setResourceName(shaders[s]->getName());
 					addResource(shaders[s]);
 					materialManager->addShader(shaders[s]);
 				}
@@ -146,24 +145,12 @@ void ResourceManager::parseCubemaps(const String& dirPath, bool recursive) {
 	for(int i=0; i < resourceDir.size(); i++) {	
 		if(resourceDir[i].type == OSFileEntry::TYPE_FILE) {
 			if(resourceDir[i].extension == "mat") {
-				Logger::log("Adding cubemaps from %s\n", resourceDir[i].nameWithoutExtension.c_str());
-				TiXmlDocument doc(resourceDir[i].fullPath.c_str());
-				doc.LoadFile();
-				if(doc.Error()) {
-					Logger::log("XML Error: %s\n", doc.ErrorDesc());
-				} else {
-					TiXmlElement *mElem = doc.RootElement()->FirstChildElement("cubemaps");
-					
-					if(mElem) {
-						TiXmlNode* pChild;					
-						for (pChild = mElem->FirstChild(); pChild != 0; pChild = pChild->NextSibling()) {
-							Cubemap *newMat = CoreServices::getInstance()->getMaterialManager()->cubemapFromXMLNode(pChild);
-							//						newMat->setResourceName(newMat->getName());
-							if(newMat)
-								addResource(newMat);
-						}
-					}
-				}
+			
+				MaterialManager *materialManager = CoreServices::getInstance()->getMaterialManager();			
+				std::vector<Cubemap*> cubemaps = materialManager->loadCubemapsFromFile(resourceDir[i].fullPath);			
+				for(int c=0; c < cubemaps.size(); c++) {
+					addResource(cubemaps[c]);
+				}			
 			}
 		} else {
 			if(recursive)
@@ -267,10 +254,20 @@ void ResourceManager::addDirResource(const String& dirPath, bool recursive) {
 	parseOthers(dirPath, recursive);	
 }
 
+Resource *ResourceManager::getResourceByPath(const String& resourcePath) const {
+	Logger::log("requested %s\n", resourcePath.c_str());
+	for(int i =0; i < resources.size(); i++) {
+		if(resources[i]->getResourcePath() == resourcePath) {
+			return resources[i];
+		}
+	}
+	Logger::log("return NULL\n");	
+	return NULL;
+}
+
 Resource *ResourceManager::getResource(int resourceType, const String& resourceName) const {
 	Logger::log("requested %s\n", resourceName.c_str());
 	for(int i =0; i < resources.size(); i++) {
-//		Logger::log("is it %s?\n", resources[i]->getResourceName().c_str());		
 		if(resources[i]->getResourceName() == resourceName && resources[i]->getResourceType() == resourceType) {
 			return resources[i];
 		}
