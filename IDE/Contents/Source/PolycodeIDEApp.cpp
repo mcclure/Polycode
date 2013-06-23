@@ -50,7 +50,7 @@ PolycodeIDEApp::PolycodeIDEApp(PolycodeView *view) : EventDispatcher() {
 	CoreServices::getInstance()->getResourceManager()->addDirResource("default");	
 
 	CoreServices::getInstance()->getResourceManager()->addArchive("hdr.pak");
-	CoreServices::getInstance()->getResourceManager()->addDirResource("hdr");	
+	CoreServices::getInstance()->getResourceManager()->addDirResource("hdr");
 
 
 	CoreServices::getInstance()->getResourceManager()->addArchive("api.pak");
@@ -405,7 +405,7 @@ void PolycodeIDEApp::doRunProject() {
 	frame->showConsole();
 
 	String outPath = PolycodeToolLauncher::generateTempPath(projectManager->getActiveProject()) + ".polyapp";
-	PolycodeToolLauncher::buildProject(projectManager->getActiveProject(), outPath);
+	PolycodeToolLauncher::buildProject(projectManager->getActiveProject(), outPath, false);
 	PolycodeToolLauncher::runPolyapp(outPath);
 }
 
@@ -899,7 +899,7 @@ void PolycodeIDEApp::handleEvent(Event *event) {
 
 	if(event->getDispatcher() == frame->exportProjectWindow) {
 		if(event->getEventType() == "UIEvent" && event->getEventCode() == UIEvent::OK_EVENT) {
-			projectManager->exportProject(projectManager->getActiveProject(), frame->exportProjectWindow->projectLocationInput->getText(), frame->exportProjectWindow->macCheckBox->isChecked(), frame->exportProjectWindow->winCheckBox->isChecked(), frame->exportProjectWindow->linCheckBox->isChecked());
+			projectManager->exportProject(projectManager->getActiveProject(), frame->exportProjectWindow->projectLocationInput->getText(), frame->exportProjectWindow->macCheckBox->isChecked(), frame->exportProjectWindow->winCheckBox->isChecked(), frame->exportProjectWindow->linCheckBox->isChecked(), frame->exportProjectWindow->compileCheckBox->isChecked());
 			frame->hideModal();			
 		}
 	}
@@ -995,12 +995,11 @@ void PolycodeIDEApp::loadConfigFile() {
 	configFile.loadFromXML(core->getUserHomeDirectory()+"/.polycode/config.xml");
 #endif	
 	globalSyntaxTheme = new SyntaxHighlightTheme();
-	String themeName = "default";
+	String themeName = "monokai";
 	ObjectEntry *syntaxTheme = configFile.root["syntax_theme"];
 	if(syntaxTheme) {
 		themeName = syntaxTheme->stringVal;
 	}
-	themeName = "monokai";	
 	globalSyntaxTheme->loadFromFile(themeName);
 	
 	if(configFile.root["open_projects"]) {
