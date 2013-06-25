@@ -75,7 +75,12 @@ namespace Polycode {
 				
 		virtual void Shutdown();
 		virtual void Update();
-				
+		
+		/**
+		* Returns the entity at specified point. May not take rotation or scale into account.
+		*/
+		ScreenEntity *getEntityAt(Number x, Number y);
+
 		virtual void Render();
 		void setRenderer(Renderer *renderer);
 

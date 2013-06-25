@@ -203,6 +203,10 @@ void Screen::Update() {
 	rootEntity.doUpdates();
 }
 
+ScreenEntity *Screen::getEntityAt(Number x, Number y) {
+    return rootEntity.getChildAt(x,y);
+}
+
 void Screen::Render() {
 	renderer->loadIdentity();
 	renderer->translate2D(offset.x, offset.y);

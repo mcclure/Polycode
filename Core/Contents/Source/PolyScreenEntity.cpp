@@ -742,3 +742,25 @@ std::vector<ScreenEntity*> ScreenEntity::getScreenEntitiesByTag(String tag, bool
 	return retEntities;
 }
 
+/**
+ * Returns the entity at specified point. May not take rotation or scale into account.
+ */
+ScreenEntity *ScreenEntity::getEntityAt(Number x, Number y) {
+    if (hitTest(x,y))
+        return this;
+        
+    return getChildAt(x,y);
+}
+
+/**
+ * Returns the entity at specified point, searching only children. May not take rotation or scale into account.
+ */
+ScreenEntity *ScreenEntity::getChildAt(Number x, Number y) {
+    for(int i=children.size()-1; i >= 0;i--) {
+        ScreenEntity *child = (ScreenEntity *)children[i];
+        ScreenEntity *found = child->getEntityAt(x,y);
+        if (found)
+            return found;
+	}
+}
+

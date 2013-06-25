@@ -283,6 +283,16 @@ class _PolyExport ScreenEntity : public Entity {
 		 */
 		std::vector<ScreenEntity*> getScreenEntitiesByTag(String tag, bool recursive);
 		
+        /**
+		 * Returns the entity at specified point. May not take rotation or scale into account.
+		 */
+        ScreenEntity *getEntityAt(Number x, Number y);
+
+        /**
+		 * Returns the entity at specified point, searching only children. May not take rotation or scale into account.
+		 */
+        ScreenEntity *getChildAt(Number x, Number y);
+        
 		/**
 		* If set to true, will block mouse events for underlaying entities.
 		* (NOTE: processInputEvents must be set to true)
