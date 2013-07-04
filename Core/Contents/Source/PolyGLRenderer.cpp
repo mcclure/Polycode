@@ -89,14 +89,22 @@ OpenGLRenderer::OpenGLRenderer() : Renderer() {
 	nearPlane = 0.1f;
 	farPlane = 100.0f;
 	verticesToDraw = 0;
-	
-	glDisable(GL_SCISSOR_TEST);
+
 }
 
 void OpenGLRenderer::setClippingPlanes(Number nearPlane_, Number farPlane_) {
 	nearPlane = nearPlane_;
 	farPlane = farPlane_;
 	Resize(xRes,yRes);
+}
+
+bool OpenGLRenderer::Init() {
+	if(!Renderer::Init())
+		return false;
+
+	glDisable(GL_SCISSOR_TEST);
+
+	return true;
 }
 
 void OpenGLRenderer::initOSSpecific(){
@@ -160,7 +168,7 @@ void OpenGLRenderer::Resize(int xRes, int yRes) {
     glLoadIdentity();
 	gluPerspective(fov,(GLfloat)xRes/(GLfloat)yRes,nearPlane,farPlane);
 	glViewport(0, 0, xRes, yRes);
-	glScissor(0, 0, xRes, yRes);
+	setScissorBox(Rectangle(0, 0, xRes, yRes));
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLineWidth(1);
@@ -180,7 +188,7 @@ void OpenGLRenderer::Resize(int xRes, int yRes) {
 	GLint numBuffers;
 	glGetIntegerv(GL_MAX_DRAW_BUFFERS, &numBuffers);
 //	Logger::log("MAX_DRAW_BUFFERS: %d \n", numBuffers);
-	
+
 }
 
 void OpenGLRenderer::setDepthFunction(int depthFunction) {

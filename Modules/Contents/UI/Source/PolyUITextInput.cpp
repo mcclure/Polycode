@@ -60,7 +60,7 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : UIElemen
 	
 	numLines = 0;
 	
-	this->positionMode = ScreenEntity::POSITION_TOPLEFT;
+	setPositionMode(POSITION_TOPLEFT);
 	Config *conf = CoreServices::getInstance()->getConfig();	
 	
 	if(multiLine)
@@ -93,7 +93,6 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : UIElemen
 	
 	textContainer = new UIElement();
 	textContainer->ownsChildren = true;
-	textContainer->enableScissor = true;
 
 	linesContainer->addChild(textContainer);
 	if(multiLine) {
@@ -129,6 +128,8 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : UIElemen
 	
 	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEDOWN);
 	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEUP);	
+	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEWHEEL_DOWN);
+	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEWHEEL_UP);	
 	inputRect->addEventListener(this, InputEvent::EVENT_DOUBLECLICK);		
 	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEMOVE);		
 	inputRect->addEventListener(this, InputEvent::EVENT_MOUSEOVER);
@@ -172,11 +173,12 @@ UITextInput::UITextInput(bool multiLine, Number width, Number height) : UIElemen
 	
 	scrollContainer = NULL;
 	if(multiLine) {
-		scrollContainer = new UIScrollContainer(linesContainer, false, true, 200, 200);
+		scrollContainer = new UIScrollContainer(linesContainer, false, true, width, height);
 		scrollContainer->addEventListener(this, Event::CHANGE_EVENT);
 		addChild(scrollContainer);
 	} else {
 		addChild(linesContainer);
+		textContainer->enableScissor = true;
 	}
 		
 	undoStateIndex = 0;
@@ -1112,7 +1114,8 @@ void UITextInput::Copy() {
 
 void UITextInput::Paste() {
 	saveUndoState();
-	insertText(CoreServices::getInstance()->getCore()->getClipboardString());
+	String clip = CoreServices::getInstance()->getCore()->getClipboardString().replace("\r\n", "\n");
+	insertText(clip);
 }
 
 void UITextInput::showLine(unsigned int lineNumber, bool top) {
@@ -1563,6 +1566,16 @@ void UITextInput::handleEvent(Event *event) {
 			break;
 			case InputEvent::EVENT_MOUSEUP:
 				draggingSelection = false;
+			break;
+			case InputEvent::EVENT_MOUSEWHEEL_UP:
+				if(scrollContainer) {
+					scrollContainer->onMouseWheelUp(0, 0);
+				}
+			break;
+			case InputEvent::EVENT_MOUSEWHEEL_DOWN:
+				if(scrollContainer) {
+					scrollContainer->onMouseWheelDown(0, 0);
+				}
 			break;
 			case InputEvent::EVENT_DOUBLECLICK:
 				selectWordAtCaret();

@@ -34,9 +34,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <Shlobj.h>
-#include <Shellapi.h>
-#include <Commdlg.h>
+#include <shlobj.h>
+#include <shellapi.h>
+#include <commdlg.h>
 
 #if defined(_MINGW)
 #ifndef MAPVK_VSC_TO_VK_EX
@@ -121,7 +121,7 @@ Win32Core::Win32Core(PolycodeViewBase *view, int _xRes, int _yRes, bool fullScre
 		Logger::log("Error initializing sockets!\n");
 	}
 
-	((OpenGLRenderer*)renderer)->initOSSpecific();
+	((OpenGLRenderer*)renderer)->init();
 
 	wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
 	wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC) wglGetProcAddress("wglGetSwapIntervalEXT");
@@ -707,6 +707,12 @@ void Win32Core::checkEvents() {
 					case InputEvent::EVENT_MOUSEUP:
 							input->setMouseButtonState(event.mouseButton, false, getTicks());
 					break;
+					case InputEvent::EVENT_MOUSEWHEEL_UP:
+						input->mouseWheelUp(getTicks());
+					break;
+					case InputEvent::EVENT_MOUSEWHEEL_DOWN:
+						input->mouseWheelDown(getTicks());						
+					break;	
 					case InputEvent::EVENT_KEYDOWN:
 						if(!checkSpecialKeyEvents((event.keyCode))) {
 							input->setKeyState(event.keyCode, (char)event.unicodeChar, true, getTicks());
